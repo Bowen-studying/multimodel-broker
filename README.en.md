@@ -122,6 +122,12 @@ Under the relay, the machine acts as a client that **dials out** to a self-hoste
 - Idempotency keys prevent double billing: `idempotencyKey` deduplicates; a repeated submission only waits, it does not re-run
 - Read/write credential separation: the read path uses each provider's API key (environment variable), while write-capable local agents use the machine's existing login (Codex subscription / local Claude Code CLI); the two are never shared
 
+## A real run (local Claude Code writing a file)
+
+Verbatim output of a `run_claude_code` call made through MCP from a remote client (local WSL2, 2026-09-17). The verdict comes from the disk, not from the model's own summary: the file exists, its content equals the unique marker, and the sha256 checks out.
+
+![A real run_claude_code call: 3 s, usage cost 0.000378 USD, file verified by sha256](docs/assets/run-claude-code.png)
+
 ## Measured results (2026-09-17, local WSL2 + AMD Radeon 780M iGPU, no CUDA)
 
 ### Cost

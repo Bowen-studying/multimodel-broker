@@ -122,6 +122,12 @@ node dist/cli/index.js relay setup|start|status|stop|url         # 公网（自�
 - 幂等键防二次计费：`idempotencyKey` 去重，重复提交只等待不重跑
 - 读/写凭据分离：只读路径走各提供方的 API key（环境变量），写型本地 agent 走本机已有的登录态（Codex 订阅 / 本地 Claude Code CLI），互不共享
 
+## 真实运行（本地 Claude Code 写文件）
+
+远程 MCP 客户端调用 `run_claude_code` 的实际输出（本机 WSL2，2026-09-17）。判定标准是磁盘，不是模型自述：文件存在、内容等于唯一标记、sha256 核对通过。
+
+![run_claude_code 实测：3 秒完成，usage cost 0.000378 USD，文件 sha256 核对通过](docs/assets/run-claude-code.png)
+
 ## 实测数据（2026-09-17，本机 WSL2 + AMD Radeon 780M iGPU，无 CUDA）
 
 ### 成本

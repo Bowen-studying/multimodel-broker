@@ -121,7 +121,7 @@
   .card p { font-size: 14px; color: var(--muted); margin: 0; }
 
   /* ---------- architecture ---------- */
-  .arch-frame svg { width: 100%; height: auto; display: block; }
+  .arch-frame svg, .arch-frame img { width: 100%; height: auto; display: block; }
     .arch-frame {
     background: var(--bg);
     border: 1px solid var(--border);
@@ -465,6 +465,16 @@ node dist/cli/index.js doctor</pre>
           <tr><td class="mono">cancel_task</td><td><span class="pill pill-ro">只读</span></td><td>取消排队/运行中的任务（本地运维工具，默认不下发给远程客户端）</td></tr>
         </tbody>
       </table>
+    </div>
+  </div>
+</section>
+
+<section id="run">
+  <div class="wrap">
+    <h2>真实运行</h2>
+    <p class="lead">远程客户端经 MCP 调用 <span class="mono">run_claude_code</span>，由本地 Claude Code 写文件。判定标准是磁盘而不是模型自述：文件存在、内容等于唯一标记、sha256 核对通过。</p>
+    <div class="arch-frame">
+      <img src="assets/run-claude-code.png" alt="run_claude_code 实测输出：3 秒完成，cost 0.000378 USD，磁盘 sha256 核对通过" loading="lazy">
     </div>
   </div>
 </section>
