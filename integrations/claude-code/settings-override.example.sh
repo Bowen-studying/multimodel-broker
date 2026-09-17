@@ -17,7 +17,9 @@ if [[ "${1:-}" == "--auto" ]]; then MODE="auto"; shift || true; fi
 WORKDIR="${1:-$PWD}"
 
 # shellcheck disable=SC1090
-source "$HOME/.hermes/scripts/claude_deepseek_env.sh"
+# Optional convenience: source a file that exports ANTHROPIC_BASE_URL / ANTHROPIC_AUTH_TOKEN.
+# Without it the runner simply uses the environment it inherits.
+source "${CLAUDE_ENV_SCRIPT:-$HOME/.config/multimodel-broker/claude-code.env}" 2>/dev/null || true
 
 SETTINGS="$(mktemp "$HOME/.cache/claude-deepseek-XXXXXX.json")"
 chmod 600 "$SETTINGS"

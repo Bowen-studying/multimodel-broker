@@ -2,7 +2,7 @@
 # 量 Claude Code 的固定开销：不同开关组合下的 input tokens 与缓存命中
 set -u
 cd /tmp/track2-scratch
-source ~/.hermes/scripts/claude_deepseek_env.sh 2>/dev/null
+source "${CLAUDE_ENV_SCRIPT:-$HOME/.config/multimodel-broker/claude-code.env}" 2>/dev/null
 SET=$(mktemp ~/.cache/t2m-XXXX.json); chmod 600 "$SET"
 python3 - "$SET" <<'PY'
 import json, os, sys

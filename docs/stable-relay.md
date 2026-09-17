@@ -226,7 +226,7 @@ task        0f604041-…  kind=run_agent  completed
                    run.finished, task.completed
 broker log  run_agent start 09:48:51.043 -> end 200 in 19004ms, user-agent openai-mcp/1.0.0
 relay log   forward POST agent -> 200 19005ms requestId=d80769fb   (the 19s forwarded call)
-disk        /home/<you>/broker-codex-write-scratch/chat-codex-test.txt
+disk        /home/<you>/broker-scratch/chat-codex-test.txt
             2 bytes, content "ok", sha256 2689367b205c16ce..., scratch repo commits still 1
 ```
 

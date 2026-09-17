@@ -15,7 +15,7 @@
  *   node scripts/codex-write-scenario.mjs
  *
  * The script prepares its own git repo at $WRITE_WORKSPACE_PATH
- * (default ~/broker-codex-write-scratch) and leaves it dirty on purpose - that
+ * (default ~/broker-scratch) and leaves it dirty on purpose - that
  * dirty state IS the evidence.
  */
 import { createHash } from "node:crypto";
@@ -27,7 +27,7 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
 const repoRoot = path.resolve(import.meta.dirname, "..");
-const scratch = process.env.WRITE_WORKSPACE_PATH ?? path.join(os.homedir(), "broker-codex-write-scratch");
+const scratch = process.env.WRITE_WORKSPACE_PATH ?? path.join(os.homedir(), "broker-scratch");
 const workspaceName = "scratch";
 const targetLine = process.env.WRITE_TARGET ?? "CODEX_WRITE_OK";
 const baselineLine = "BROKER-CODEX-WRITE-BASELINE";

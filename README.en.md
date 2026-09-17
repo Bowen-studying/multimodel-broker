@@ -77,6 +77,25 @@ node dist/cli/index.js relay setup|start|status|stop|url         # public (self-
 - `npm test`: vitest, offline
 - `npm run build`: tsc, emits dist/
 
+### Bring your own environment
+
+Nothing here assumes a particular directory layout, and no credential ships with the code:
+
+1. **At least one API worker**: `cp .env.example .env`, fill in one `*_API_KEY` (DeepSeek / GLM / Gemini),
+   and enable that provider in `config/providers.yaml`; to just look around first, use
+   `config/providers.mock.yaml` (a pure mock, zero cost).
+2. **Optional local agent (write-capable)**: `codex` uses the machine's own Codex login (`~/.codex`; the
+   broker neither reads nor copies any credential). `claude-code` needs an Anthropic-compatible endpoint
+   and token, supplied either way - `export ANTHROPIC_BASE_URL=... ANTHROPIC_AUTH_TOKEN=...`, or put them
+   in a file and point `options.envScript` / `$CLAUDE_ENV_SCRIPT` at it (the runner sources it in a login
+   shell and never puts a secret on the command line); the default location is
+   `~/.config/multimodel-broker/claude-code.env`. Install the Claude Code CLI however you prefer - it just
+   has to resolve as `claude` (pin an absolute path in config when running as a service).
+3. **Optional public access**: `node dist/cli/index.js relay setup` walks you through deploying the
+   self-hosted relay (Cloudflare Worker + Durable Object); the machine dials out, no inbound port is opened.
+
+`doctor` reports provider and workspace readiness one by one and says what is missing; it never prints a secret.
+
 ## MCP tools
 
 | Tool | readOnlyHint | destructiveHint | Purpose |

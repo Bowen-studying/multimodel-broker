@@ -77,6 +77,23 @@ node dist/cli/index.js relay setup|start|status|stop|url         # 公网（自�
 - `npm test`：vitest，离线
 - `npm run build`：tsc，产出 dist/
 
+### 用自己的环境跑起来
+
+这个项目不假设任何特定的目录布局，也没有内置任何凭据：
+
+1. **至少一个 API worker**：`cp .env.example .env`，填入一个 `*_API_KEY`（DeepSeek / GLM / Gemini 任一），
+   然后在 `config/providers.yaml` 里启用对应 provider；只想先看效果就用 `config/providers.mock.yaml`（纯假实现，零成本）。
+2. **可选：本地 agent（写型）**：`codex` 走本机 Codex 登录（`~/.codex`，broker 不读也不复制任何凭据）；
+   `claude-code` 需要一个 Anthropic 兼容端点与令牌，两种给法任选——
+   `export ANTHROPIC_BASE_URL=... ANTHROPIC_AUTH_TOKEN=...`，或把它们写进一个文件再用
+   `options.envScript` / `$CLAUDE_ENV_SCRIPT` 指过去（runner 会在登录 shell 里 source 它，从不把密钥放上命令行），
+   默认位置是 `~/.config/multimodel-broker/claude-code.env`。
+   Claude Code CLI 本身用自己的方式安装（`claude` 得能被解析到；服务化运行时建议在配置里写绝对路径）。
+3. **可选：公网接入**：`node dist/cli/index.js relay setup` 会引导你部署自建中继（Cloudflare Worker + Durable Object），
+   本机作为客户端主动外连，不开入站端口。
+
+`doctor` 会逐个报告 provider/workspace 是否就绪，并在缺东西时说明缺什么；它从不打印任何密钥。
+
 ## MCP 工具
 
 | 工具 | readOnlyHint | destructiveHint | 用途 |

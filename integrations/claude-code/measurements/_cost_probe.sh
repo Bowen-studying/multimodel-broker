@@ -2,7 +2,7 @@
 # 1) 禁用部分内置工具后 token 变化  2) DeepSeek 余额前后差（真实计费口径）
 set -u
 cd /tmp/track2-scratch
-source ~/.hermes/scripts/claude_deepseek_env.sh 2>/dev/null
+source "${CLAUDE_ENV_SCRIPT:-$HOME/.config/multimodel-broker/claude-code.env}" 2>/dev/null
 bal() { curl -s -m 20 https://api.deepseek.com/user/balance -H "Authorization: Bearer $ANTHROPIC_AUTH_TOKEN"; }
 echo "余额前: $(bal)"
 SET=$(mktemp ~/.cache/t2n-XXXX.json); chmod 600 "$SET"

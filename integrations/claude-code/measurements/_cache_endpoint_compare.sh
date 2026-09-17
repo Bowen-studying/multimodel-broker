@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # 判定：DeepSeek 的 Anthropic 端点是否真的不缓存（对比 OpenAI 格式）
 set -u
-source ~/.hermes/scripts/claude_deepseek_env.sh 2>/dev/null
+source "${CLAUDE_ENV_SCRIPT:-$HOME/.config/multimodel-broker/claude-code.env}" 2>/dev/null
 
 python3 - <<'PY' > /tmp/anth-payload.json
 import json

@@ -22,7 +22,7 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
 const repoRoot = path.resolve(import.meta.dirname, "..");
-const scratch = process.env.WRITE_WORKSPACE_PATH ?? path.join(os.homedir(), "broker-codex-write-scratch");
+const scratch = process.env.WRITE_WORKSPACE_PATH ?? path.join(os.homedir(), "broker-scratch");
 const urlFile = path.join(os.homedir(), ".broker-agent-connector-url");
 const dbPath = path.join(repoRoot, "data", "broker-agent.sqlite");
 const pauseSeconds = Number(process.env.ASYNC_CHECK_SECONDS ?? 9);

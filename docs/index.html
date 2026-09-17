@@ -122,6 +122,14 @@
 
   /* ---------- architecture ---------- */
   .arch-frame svg, .arch-frame img { width: 100%; height: auto; display: block; }
+
+  /* ---------- bring your own environment ---------- */
+  .byo { margin-top: 26px; border: 1px solid var(--border); border-radius: 10px; padding: 20px 22px; background: var(--surface); }
+  .byo h3 { margin: 0 0 12px; font-size: 16px; }
+  .byo ul { margin: 0; padding-left: 20px; }
+  .byo li { margin: 8px 0; color: var(--muted); line-height: 1.65; }
+  .byo li b { color: var(--text-strong); }
+  .byo .note { margin: 14px 0 0; color: var(--muted); font-size: 13.5px; }
     .arch-frame {
     background: var(--bg);
     border: 1px solid var(--border);
@@ -435,6 +443,15 @@ node dist/cli/index.js doctor</pre>
   --port 8789</pre>
       </div>
 
+    </div>
+    <div class="byo">
+      <h3>用自己的环境跑起来</h3>
+      <ul>
+        <li><b>至少一个 API worker</b>：<span class="mono">cp .env.example .env</span>，填入一个 <span class="mono">*_API_KEY</span>（DeepSeek / GLM / Gemini），在 <span class="mono">config/providers.yaml</span> 里启用它；只想先看看就用 <span class="mono">config/providers.mock.yaml</span>（纯假实现、零成本）。</li>
+        <li><b>可选：本地写型 agent</b>：<span class="mono">codex</span> 用本机已有 Codex 登录（broker 不读也不复制凭据）；<span class="mono">claude-code</span> 需要 Anthropic 兼容端点与令牌 —— 直接 <span class="mono">export ANTHROPIC_BASE_URL / ANTHROPIC_AUTH_TOKEN</span>，或写进文件由 <span class="mono">options.envScript</span> 或 <span class="mono">$CLAUDE_ENV_SCRIPT</span> 指向（默认 <span class="mono">~/.config/multimodel-broker/claude-code.env</span>，密钥从不进命令行）。</li>
+        <li><b>可选：公网接入</b>：<span class="mono">relay setup</span> 引导部署自建中继，本机主动外连、不开入站端口。</li>
+      </ul>
+      <p class="note">不假设任何目录布局，也不内置任何凭据；<span class="mono">doctor</span> 会逐个报告还缺什么，但从不打印密钥。</p>
     </div>
   </div>
 </section>

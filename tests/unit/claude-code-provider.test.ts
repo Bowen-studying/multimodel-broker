@@ -147,18 +147,49 @@ describe("claude-code provider: failures", () => {
     expect(health.details?.node).toBe(process.execPath);
     const pinned = new ClaudeCodeProvider("claude-code", config({ options: { runnerPath: "/fake/run.mjs", nodeBinary: "/opt/node/bin/node" } }), {});
     expect((await pinned.healthCheck()).details?.node).toBe("/opt/node/bin/node");
+
+    // A configured env script is passed to the runner explicitly, so the child never has to guess.
+    const seen: string[][] = [];
+    const withScript = new ClaudeCodeProvider("claude-code", config({ options: { runnerPath: "/fake/run.mjs", envScript: "/etc/backend.env" } }), {
+      exec: async (args) => {
+        seen.push(args);
+        return execReturning([summary()]);
+      },
+    });
+    await withScript.run(request({ workspace: "/tmp/scratch" }), SIGNAL);
+    expect(seen[0]![seen[0]!.indexOf("--env-script") + 1]).toBe("/etc/backend.env");
   });
 
-  it("reports itself unhealthy when the runner or env script is missing", async () => {
+  it("reports itself unhealthy when the runner is missing or no backend is configured", async () => {
     const provider = new ClaudeCodeProvider(
       "claude-code",
       config({ options: { runnerPath: "/fake/claude_code_run.mjs", envScript: "/fake/missing_env.sh" } }),
-      { fileExists: async (target: string) => target.includes("claude_code_run") },
+      { fileExists: async (target: string) => target.includes("claude_code_run"), env: {} },
     );
     const health = await provider.healthCheck();
     expect(health.healthy).toBe(false);
-    expect(health.reason).toContain("env script");
-    expect(health.details).toMatchObject({ model: "deepseek-flash", permissionMode: "auto" });
+    expect(health.reason).toContain("no backend credentials");
+    expect(health.details).toMatchObject({ model: "deepseek-flash", permissionMode: "auto", backend: "missing" });
+  });
+
+  it("needs no personal env script: exported variables are a complete setup", async () => {
+    // The public build must not assume any particular dotfile layout: a plain export has to work.
+    const provider = new ClaudeCodeProvider("claude-code", config({ options: { runnerPath: "/fake/runner.mjs" } }), {
+      fileExists: async (target: string) => target.endsWith("runner.mjs"),
+      env: { ANTHROPIC_BASE_URL: "https://example.invalid/anthropic", ANTHROPIC_AUTH_TOKEN: "irrelevant-for-this-check" },
+    });
+    const health = await provider.healthCheck();
+    expect(health.healthy).toBe(true);
+    expect(health.details?.backend).toBe("process environment");
+    expect(health.details?.envScript).toContain("auto:");
+
+    // ... and an explicitly configured script still wins over both fallbacks.
+    const scripted = new ClaudeCodeProvider(
+      "claude-code",
+      config({ options: { runnerPath: "/fake/runner.mjs", envScript: "/etc/my-backend.env" } }),
+      { fileExists: async () => true, env: {} },
+    );
+    expect((await scripted.healthCheck()).details?.backend).toBe("/etc/my-backend.env");
   });
 
   it("refuses bypassPermissions unless the operator opted in", async () => {

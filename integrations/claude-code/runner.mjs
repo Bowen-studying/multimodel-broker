@@ -32,7 +32,22 @@ const MODEL = arg("model", "deepseek-flash");
 const PERMISSION_MODE = arg("permission-mode", "auto");
 const CWD = arg("cwd", process.cwd());
 const TIMEOUT_MS = Number(arg("timeout-ms", "900000"));
-const ENV_SCRIPT = process.env.CLAUDE_ENV_SCRIPT ?? path.join(os.homedir(), ".hermes/scripts/claude_deepseek_env.sh");
+/**
+ * Where the backend endpoint/token come from, in order:
+ *   1. `options.envScript` (this file's config),
+ *   2. `$CLAUDE_ENV_SCRIPT`,
+ *   3. `~/.config/multimodel-broker/claude-code.env` if it exists,
+ *   4. otherwise the runner's own environment (export ANTHROPIC_BASE_URL / ANTHROPIC_AUTH_TOKEN).
+ * Step 4 is what makes this portable: a single-user setup needs no script at all.
+ */
+function resolveEnvScript(explicit) {
+  const candidates = [explicit, process.env.CLAUDE_ENV_SCRIPT, path.join(os.homedir(), ".config/multimodel-broker/claude-code.env")];
+  for (const candidate of candidates) {
+    if (candidate && fs.existsSync(candidate)) return candidate;
+  }
+  return "";
+}
+const ENV_SCRIPT = resolveEnvScript(arg("env-script", process.env.CLAUDE_ENV_SCRIPT ?? ""));
 
 /**
  * Absolute path to the Claude Code CLI. A launcher with a minimal PATH (systemd, cron) cannot
@@ -52,16 +67,26 @@ if (!PROMPT) {
   process.exit(2);
 }
 
-// 1) Pull the backend env out of the user's env script without printing it.
-const dumped = spawnSync(
-  "bash",
-  ["-lc", `source ${JSON.stringify(ENV_SCRIPT)} >/dev/null 2>&1; node -e 'const k=["ANTHROPIC_BASE_URL","ANTHROPIC_AUTH_TOKEN","HTTP_PROXY","HTTPS_PROXY","NO_PROXY","http_proxy","https_proxy","no_proxy"];process.stdout.write(JSON.stringify(Object.fromEntries(k.map(x=>[x,process.env[x]||""]))))'`],
-  { encoding: "utf8" },
-);
-let backend = {};
-try { backend = JSON.parse(dumped.stdout || "{}"); } catch { backend = {}; }
+// 1) Resolve the backend env without ever printing it. With a script we source it in a login shell;
+//    without one we simply use our own environment, so a plain `export` is a complete setup.
+const KEYS = ["ANTHROPIC_BASE_URL", "ANTHROPIC_AUTH_TOKEN", "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY",
+  "http_proxy", "https_proxy", "no_proxy"];
+const pick = (source) => Object.fromEntries(KEYS.map((k) => [k, source[k] || ""]));
+let backend = ENV_SCRIPT
+  ? (() => {
+      const dumped = spawnSync("bash", ["-lc",
+        `source ${JSON.stringify(ENV_SCRIPT)} >/dev/null 2>&1; node -e 'const k=${JSON.stringify(KEYS)};process.stdout.write(JSON.stringify(Object.fromEntries(k.map(x=>[x,process.env[x]||""]))))'`],
+        { encoding: "utf8" });
+      try { return JSON.parse(dumped.stdout || "{}"); } catch { return {}; }
+    })()
+  : pick(process.env);
 if (!backend.ANTHROPIC_BASE_URL || !backend.ANTHROPIC_AUTH_TOKEN) {
-  console.error(JSON.stringify({ status: "error", error: "backend env missing (base url / token not found)", stderr: (dumped.stderr || "").slice(-300) }));
+  console.error(JSON.stringify({
+    status: "error",
+    error: ENV_SCRIPT
+      ? `backend env missing: ${ENV_SCRIPT} did not set ANTHROPIC_BASE_URL / ANTHROPIC_AUTH_TOKEN`
+      : "backend env missing: export ANTHROPIC_BASE_URL and ANTHROPIC_AUTH_TOKEN, or point $CLAUDE_ENV_SCRIPT at a file that does",
+  }));
   process.exit(3);
 }
 

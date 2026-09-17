@@ -2,7 +2,7 @@
 # A) 直连 OpenAI 格式缓存的干净实验（同payload连发 / 共享前缀不同尾巴）
 # C) Claude Code 走诊断代理：看前缀指纹是否稳定
 set -u
-source ~/.hermes/scripts/claude_deepseek_env.sh 2>/dev/null
+source "${CLAUDE_ENV_SCRIPT:-$HOME/.config/multimodel-broker/claude-code.env}" 2>/dev/null
 
 echo "=== A1) 同一 payload 连发两次（应命中"请求边界"缓存单元）==="
 python3 - <<'PY' > /tmp/payload.json

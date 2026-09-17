@@ -138,8 +138,25 @@ export class ClaudeCodeProvider implements WorkerProvider {
     return this.option<string>("nodeBinary") ?? process.execPath;
   }
 
-  private get envScript(): string {
-    return this.option<string>("envScript") ?? path.join(os.homedir(), ".hermes/scripts/claude_deepseek_env.sh");
+  /**
+   * Optional file that exports the backend endpoint/token. Nothing here assumes a personal layout:
+   * an explicit `options.envScript` or `$CLAUDE_ENV_SCRIPT` wins, and when neither is set the runner
+   * falls back to `~/.config/multimodel-broker/claude-code.env` if it exists, or to the environment it
+   * was started with - so `export ANTHROPIC_BASE_URL/ANTHROPIC_AUTH_TOKEN` is a complete setup.
+   */
+  private get envScript(): string | undefined {
+    const configured = this.option<string>("envScript") ?? this.spawnEnv().CLAUDE_ENV_SCRIPT;
+    return configured?.trim() ? configured : undefined;
+  }
+
+  /** `options.backendEnv` first (bundled credentials from the operator's environment), then the process env. */
+  private spawnEnv(): NodeJS.ProcessEnv {
+    return this.deps.env ?? process.env;
+  }
+
+  /** Where the runner will look for the backend when no script is configured. */
+  private get neutralEnvPath(): string {
+    return path.join(os.homedir(), ".config/multimodel-broker/claude-code.env");
   }
 
   /**
@@ -164,19 +181,28 @@ export class ClaudeCodeProvider implements WorkerProvider {
       return { healthy: false, checkedAt, reason: toBrokerError(error, "CONFIG_ERROR").message };
     }
     const exists = this.deps.fileExists ?? (async (target: string) => { try { await access(target); return true; } catch { return false; } });
-    const [runnerPresent, envScriptPresent] = await Promise.all([exists(runner), exists(this.envScript)]);
+    const env = this.spawnEnv();
+    const script = this.envScript;
+    const [runnerPresent, scriptPresent, neutralPresent] = await Promise.all([
+      exists(runner),
+      script ? exists(script) : Promise.resolve(false),
+      exists(this.neutralEnvPath),
+    ]);
+    const fromEnv = Boolean(env.ANTHROPIC_BASE_URL && env.ANTHROPIC_AUTH_TOKEN);
+    const backend = scriptPresent ? script : fromEnv ? "process environment" : neutralPresent ? this.neutralEnvPath : undefined;
     const reason = !runnerPresent
       ? `runner not found at ${runner}`
-      : !envScriptPresent
-        ? `backend env script not found at ${this.envScript} (it holds the DeepSeek base url/token)`
+      : !backend
+        ? `no backend credentials: set options.envScript or $CLAUDE_ENV_SCRIPT, create ${this.neutralEnvPath}, or export ANTHROPIC_BASE_URL + ANTHROPIC_AUTH_TOKEN`
         : undefined;
     return {
-      healthy: runnerPresent && envScriptPresent,
+      healthy: runnerPresent && Boolean(backend),
       checkedAt,
       reason,
       details: {
         runner,
-        envScript: this.envScript,
+        envScript: script ?? "(auto: " + this.neutralEnvPath + " or the process environment)",
+        backend: backend ?? "missing",
         model,
         permissionMode: mode,
         defaultCwd: this.defaultCwd ?? "(caller must pass a workspace)",
@@ -204,6 +230,8 @@ export class ClaudeCodeProvider implements WorkerProvider {
       "--timeout-ms", String(timeoutMs),
     ];
     if (this.claudeBinary) args.push("--claude-bin", this.claudeBinary);
+    const envScript = this.envScript;
+    if (envScript) args.push("--env-script", envScript);
     const exec = this.deps.exec ?? ((argv: string[], options: { cwd: string; signal: AbortSignal; env: NodeJS.ProcessEnv }) =>
       new Promise<ClaudeCodeExecResult>((resolve, reject) => {
         const child = spawn(this.nodeBinary, argv, { cwd: options.cwd, env: options.env, stdio: ["ignore", "pipe", "pipe"] });
@@ -220,7 +248,7 @@ export class ClaudeCodeProvider implements WorkerProvider {
         });
       }));
 
-    const outcome = await exec(args, { cwd, signal, env: this.deps.env ?? process.env });
+    const outcome = await exec(args, { cwd, signal, env: this.spawnEnv() });
     if (signal.aborted) throw signal.reason ?? new BrokerError("CANCELLED", "Claude Code run cancelled", { retryable: false });
     const summary = parseSummary(outcome.stdout);
     if (!summary) {

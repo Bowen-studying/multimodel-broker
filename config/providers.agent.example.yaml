@@ -64,7 +64,10 @@ providers:
     defaultTimeoutMs: 1800000       # long edits are expected; poll with get_task
     options:
       runnerPath: /absolute/path/to/multimodel-broker/integrations/claude-code/runner.mjs
-      envScript: ~/.hermes/scripts/claude_deepseek_env.sh   # holds ANTHROPIC_BASE_URL / ANTHROPIC_AUTH_TOKEN
+      # Optional. The runner also accepts $CLAUDE_ENV_SCRIPT, or falls back to
+      # ~/.config/multimodel-broker/claude-code.env, or simply to the environment it inherits -
+      # in which case exporting ANTHROPIC_BASE_URL + ANTHROPIC_AUTH_TOKEN is a complete setup.
+      envScript: ~/.config/multimodel-broker/claude-code.env
       permissionMode: auto          # auto | acceptEdits | plan (bypassPermissions needs allowBypassPermissions: true)
       claudeBinary: /absolute/path/to/claude   # `command -v claude` - a service PATH often lacks it
       defaultCwd: /absolute/path/to/a/working/directory

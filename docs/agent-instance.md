@@ -99,7 +99,7 @@ Two environment traps this worker hit on first use, both now closed:
 
 - **`spawn node ENOENT`** under systemd: the service PATH has no `node`. The provider spawns the
   runner with `process.execPath` (the Node running the broker), overridable with `options.nodeBinary`.
-- **`claude` not on the service PATH**: the CLI lives in `~/.hermes/node/bin`, which a service
+- **`claude` not on the service PATH**: the CLI usually lives in a version manager's bin directory, which a service
   manager does not know. Pin `options.claudeBinary` (the runner also falls back to asking a login
   shell). The runner reports its own startup failure as JSON, so the reason reaches the caller.
 
@@ -174,7 +174,7 @@ ChatGPT/Codex desktop app instead of this machine's own Codex:
 | `adapter` | `codex-sdk` (same adapter as `codex`) |
 | `options.codexPath` | `C:\Users\<you>\AppData\Local\OpenAI\Codex\bin\codex.exe` (the app's bundled binary, reached from WSL as `/mnt/c/...`) |
 | `options.windowsPaths` | `true` - a `/mnt/<drive>/...` workspace is translated to `<DRIVE>:\...` before it is handed to the child process |
-| workspace | `win-scratch` → `/mnt/c/Users/18821/Documents/gpt-codex-bridge-scratch` |
+| workspace | `win-scratch` → `/mnt/c/Users/<you>/Documents/gpt-codex-bridge-scratch` |
 | policy | `workspace-write`, `approvalPolicy: never`, no network, no web search, `maxConcurrency: 1` |
 | `options.skipGitRepoCheck` | `true` - the Windows workspace is not a git repo, so verification there is file-level (content + hashes), not git-based |
 
@@ -187,7 +187,7 @@ Verified so far:
 - `doctor` reports `codex-win [enabled] adapter=codex-sdk ... healthy=ok` with
   `codexPath=[REDACTED].exe` / `windowsPaths=true`, and `win-scratch -> [ok]`.
 - Both stores carry a live login (`~/.codex/auth.json` on this side,
-  `/mnt/c/Users/18821/.codex/auth.json` on the Windows side). The broker reads none of them: the
+  `/mnt/c/Users/<you>/.codex/auth.json` on the Windows side). The broker reads none of them: the
   child process uses its own login, exactly like the `codex` worker.
 - The Windows binary answers the app-server probe from WSL: `initialize` returns
   `codexHome=C:\Users\<you>\.codex`, `platformOs=windows`; `thread/list` returns the 25 threads
