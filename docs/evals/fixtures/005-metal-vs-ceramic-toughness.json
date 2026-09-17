@@ -1,0 +1,31 @@
+{
+  "id": "005-metal-vs-ceramic-toughness",
+  "domain": "materials-science/mechanical-behaviour",
+  "mode": "parallel_compare",
+  "task": "解释为什么金属材料通常比陶瓷材料韧性更好。",
+  "criticalClaims": [
+    {
+      "claim": "金属键无方向性、滑移系多，位错容易运动，因此可发生塑性变形并吸收能量。",
+      "verdict": "required"
+    },
+    {
+      "claim": "陶瓷以离子键/共价键为主、滑移系少（或需要同号离子相邻而不易滑移），断裂前几乎不产生塑性变形。",
+      "verdict": "required"
+    },
+    {
+      "claim": "陶瓷对缺陷（微裂纹、孔洞）敏感，裂纹尖端应力集中使其倾向于脆性断裂；韧性评价还需要考虑断裂韧性 K_IC 而非仅强度。",
+      "verdict": "optional"
+    }
+  ],
+  "expectedAdjudication": {
+    "mustDetect": [
+      "若某个候选只讲化学键不提塑性变形/位错机制，必须标为不完整而不是判错",
+      "若两个候选各讲一半（一个讲键、一个讲滑移系），必须指出两者互补且都不完整"
+    ],
+    "mustNotClaim": [
+      "只讲键的一方是错的"
+    ],
+    "resolution": "同时覆盖键的性质与塑性变形（位错/滑移系）两方面"
+  },
+  "source": "材料力学性能教材级结论；本 fixture 检验“两者都不完整”时的判定能力"
+}

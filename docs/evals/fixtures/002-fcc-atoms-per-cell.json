@@ -1,0 +1,33 @@
+{
+  "id": "002-fcc-atoms-per-cell",
+  "domain": "materials-science/crystallography",
+  "mode": "parallel_compare",
+  "task": "面心立方（FCC）结构每个晶胞含几个原子？配位数是多少？请说明这两个数字是怎么得到的。",
+  "criticalClaims": [
+    {
+      "claim": "FCC 每个晶胞含 4 个原子。",
+      "verdict": "required"
+    },
+    {
+      "claim": "推导来自共享计数：8 个顶点 × 1/8 + 6 个面心 × 1/2 = 4。",
+      "verdict": "required"
+    },
+    {
+      "claim": "FCC 的配位数是 12。",
+      "verdict": "required"
+    }
+  ],
+  "expectedAdjudication": {
+    "mustDetect": [
+      "若某个候选给出 14 或 6 个原子/晶胞，必须判为错误",
+      "若某个候选把配位数写成 8 或 6，必须判为错误",
+      "必须指出 4 与 12 是两个不同问题（晶胞内原子数 vs 最近邻数）的答案，不能混为一谈"
+    ],
+    "mustNotClaim": [
+      "4 和 12 是同一个计数",
+      "顶点原子被 4 个晶胞共享"
+    ],
+    "resolution": "原子数 4（共享计数推导）、配位数 12，两者概念不同"
+  },
+  "source": "结晶学/固体物理教材级结论（可独立验算：顶点共享 8、面心共享 2）"
+}

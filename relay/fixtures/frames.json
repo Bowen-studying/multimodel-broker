@@ -1,0 +1,74 @@
+[
+  {
+    "t": "hello",
+    "deviceId": "fixture-device",
+    "channels": [
+      {
+        "name": "readonly",
+        "target": "http://127.0.0.1:8789/mcp"
+      },
+      {
+        "name": "agent",
+        "target": "http://127.0.0.1:8790/mcp"
+      }
+    ],
+    "protocol": 1
+  },
+  {
+    "t": "hello.ok",
+    "deviceId": "fixture-device",
+    "protocol": 1
+  },
+  {
+    "t": "heartbeat",
+    "at": "2026-09-17T00:00:00.000Z"
+  },
+  {
+    "t": "heartbeat.ok",
+    "at": "2026-09-17T00:00:00.000Z"
+  },
+  {
+    "t": "req",
+    "requestId": "fixture-request",
+    "channel": "readonly",
+    "deadlineMs": 60000,
+    "request": {
+      "method": "POST",
+      "path": "/mcp",
+      "headers": {
+        "content-type": "application/json"
+      },
+      "bodyBase64": "e30="
+    }
+  },
+  {
+    "t": "res.start",
+    "requestId": "fixture-request",
+    "status": 200,
+    "headers": {
+      "content-type": "application/json"
+    }
+  },
+  {
+    "t": "res.chunk",
+    "requestId": "fixture-request",
+    "seq": 0,
+    "bodyBase64": "e30=",
+    "last": false
+  },
+  {
+    "t": "res.end",
+    "requestId": "fixture-request"
+  },
+  {
+    "t": "req.error",
+    "requestId": "fixture-request",
+    "code": "local_unreachable",
+    "message": "Local endpoint unavailable"
+  },
+  {
+    "t": "outcome_unknown",
+    "requestId": "fixture-request",
+    "reason": "connection lost after delivery"
+  }
+]

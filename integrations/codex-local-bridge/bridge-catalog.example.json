@@ -1,0 +1,220 @@
+{
+  "models": [
+    {
+      "slug": "gpt-6-astra",
+      "display_name": "GPT-6 Astra",
+      "description": "GPT-6 Astra via local bridge",
+      "shell_type": "shell_command",
+      "visibility": "list",
+      "supported_in_api": true,
+      "multi_agent_version": "v1",
+      "base_instructions": "local bridge harness",
+      "tool_mode": "code_mode_only",
+      "context_window": 128000,
+      "max_context_window": 128000,
+      "auto_compact_token_limit": 100000,
+      "comp_hash": "bridge-compaction-contract",
+      "supported_reasoning_levels": [
+        {
+          "effort": "low",
+          "description": "Low"
+        },
+        {
+          "effort": "medium",
+          "description": "Medium"
+        },
+        {
+          "effort": "high",
+          "description": "High"
+        }
+      ],
+      "priority": 1,
+      "support_verbosity": true,
+      "truncation_policy": {
+        "mode": "tokens",
+        "limit": 10000
+      },
+      "experimental_supported_tools": []
+    },
+    {
+      "slug": "gpt-5.6-sol",
+      "display_name": "GPT-5.6 Sol",
+      "description": "GPT-5.6 Sol via local bridge",
+      "shell_type": "shell_command",
+      "visibility": "list",
+      "supported_in_api": true,
+      "multi_agent_version": "v1",
+      "base_instructions": "local bridge harness",
+      "tool_mode": "code_mode_only",
+      "context_window": 128000,
+      "max_context_window": 128000,
+      "auto_compact_token_limit": 100000,
+      "comp_hash": "bridge-compaction-contract",
+      "supported_reasoning_levels": [
+        {
+          "effort": "low",
+          "description": "Low"
+        },
+        {
+          "effort": "medium",
+          "description": "Medium"
+        },
+        {
+          "effort": "high",
+          "description": "High"
+        }
+      ],
+      "priority": 1,
+      "support_verbosity": true,
+      "truncation_policy": {
+        "mode": "tokens",
+        "limit": 10000
+      },
+      "experimental_supported_tools": []
+    },
+    {
+      "slug": "gpt-5.6-terra",
+      "display_name": "GPT-5.6 Terra",
+      "description": "GPT-5.6 Terra via local bridge",
+      "shell_type": "shell_command",
+      "visibility": "list",
+      "supported_in_api": true,
+      "multi_agent_version": "v1",
+      "base_instructions": "local bridge harness",
+      "tool_mode": "code_mode_only",
+      "context_window": 128000,
+      "max_context_window": 128000,
+      "auto_compact_token_limit": 100000,
+      "comp_hash": "bridge-compaction-contract",
+      "supported_reasoning_levels": [
+        {
+          "effort": "low",
+          "description": "Low"
+        },
+        {
+          "effort": "medium",
+          "description": "Medium"
+        },
+        {
+          "effort": "high",
+          "description": "High"
+        }
+      ],
+      "priority": 1,
+      "support_verbosity": true,
+      "truncation_policy": {
+        "mode": "tokens",
+        "limit": 10000
+      },
+      "experimental_supported_tools": []
+    },
+    {
+      "slug": "gpt-5.6-luna",
+      "display_name": "GPT-5.6 Luna",
+      "description": "GPT-5.6 Luna via local bridge",
+      "shell_type": "shell_command",
+      "visibility": "list",
+      "supported_in_api": true,
+      "multi_agent_version": "v1",
+      "base_instructions": "local bridge harness",
+      "tool_mode": "code_mode_only",
+      "context_window": 128000,
+      "max_context_window": 128000,
+      "auto_compact_token_limit": 100000,
+      "comp_hash": "bridge-compaction-contract",
+      "supported_reasoning_levels": [
+        {
+          "effort": "low",
+          "description": "Low"
+        },
+        {
+          "effort": "medium",
+          "description": "Medium"
+        },
+        {
+          "effort": "high",
+          "description": "High"
+        }
+      ],
+      "priority": 1,
+      "support_verbosity": true,
+      "truncation_policy": {
+        "mode": "tokens",
+        "limit": 10000
+      },
+      "experimental_supported_tools": []
+    },
+    {
+      "slug": "gpt-5.5",
+      "display_name": "GPT-5.5",
+      "description": "GPT-5.5 via local bridge",
+      "shell_type": "shell_command",
+      "visibility": "list",
+      "supported_in_api": true,
+      "multi_agent_version": "v1",
+      "base_instructions": "local bridge harness",
+      "tool_mode": "code_mode_only",
+      "context_window": 128000,
+      "max_context_window": 128000,
+      "auto_compact_token_limit": 100000,
+      "comp_hash": "bridge-compaction-contract",
+      "supported_reasoning_levels": [
+        {
+          "effort": "low",
+          "description": "Low"
+        },
+        {
+          "effort": "medium",
+          "description": "Medium"
+        },
+        {
+          "effort": "high",
+          "description": "High"
+        }
+      ],
+      "priority": 1,
+      "support_verbosity": true,
+      "truncation_policy": {
+        "mode": "tokens",
+        "limit": 10000
+      },
+      "experimental_supported_tools": []
+    },
+    {
+      "slug": "web-manual",
+      "display_name": "ChatGPT Web (manual paste)",
+      "description": "ChatGPT Web (manual paste) via local bridge",
+      "shell_type": "shell_command",
+      "visibility": "list",
+      "supported_in_api": true,
+      "multi_agent_version": "v1",
+      "base_instructions": "local bridge harness",
+      "tool_mode": "code_mode_only",
+      "context_window": 128000,
+      "max_context_window": 128000,
+      "auto_compact_token_limit": 100000,
+      "comp_hash": "bridge-compaction-contract",
+      "supported_reasoning_levels": [
+        {
+          "effort": "low",
+          "description": "Low"
+        },
+        {
+          "effort": "medium",
+          "description": "Medium"
+        },
+        {
+          "effort": "high",
+          "description": "High"
+        }
+      ],
+      "priority": 1,
+      "support_verbosity": true,
+      "truncation_policy": {
+        "mode": "tokens",
+        "limit": 10000
+      },
+      "experimental_supported_tools": []
+    }
+  ]
+}

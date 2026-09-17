@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Multi-Model Broker — 面向 MCP 的多模型任务代理层</title>
+<meta name="description" content="Multi-Model Broker：面向 MCP 的多模型任务代理层。MCP 客户端把任务交给它，它按能力路由到本机或云端的多个 worker，返回统一结构的结果并留下可审计 trace；读写能力严格分离。">
+<style>
+  :root {
+    --bg: #0b0f14;
+    --surface: #10161e;
+    --surface-2: #161d27;
+    --border: #222b36;
+    --border-strong: #2a3441;
+    --text: #c9d1d9;
+    --text-strong: #e6edf3;
+    --muted: #7d8894;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --red: #f85149;
+    --purple: #bc8cff;
+    --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, "Liberation Mono", monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code, pre { font-family: var(--mono); }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+
+  /* ---------- hero ---------- */
+  header.hero {
+    padding: 72px 0 48px;
+    border-bottom: 1px solid var(--border);
+  }
+  .badge {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    border: 1px solid var(--border-strong);
+    border-radius: 999px;
+    padding: 3px 12px;
+    margin-bottom: 20px;
+  }
+  h1 {
+    font-size: clamp(30px, 5vw, 46px);
+    line-height: 1.15;
+    margin: 0 0 16px;
+    color: var(--text-strong);
+    letter-spacing: -0.5px;
+  }
+  h1 .accent { color: var(--accent); }
+  .tagline {
+    font-size: clamp(16px, 2.4vw, 20px);
+    color: var(--muted);
+    max-width: 46em;
+    margin: 0 0 28px;
+  }
+  .cta-row { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 28px; }
+  .btn {
+    display: inline-block;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    border: 1px solid var(--border-strong);
+    transition: background .15s ease, border-color .15s ease, color .15s ease;
+  }
+  .btn-primary { background: var(--accent); border-color: var(--accent); color: #04121f; }
+  .btn-primary:hover { background: #79b8ff; text-decoration: none; }
+  .btn-ghost { color: var(--text); }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--text-strong); text-decoration: none; }
+  .facts {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--muted);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 18px;
+  }
+  .facts span::before { content: "·"; margin-right: 6px; color: var(--accent); }
+  .facts span:first-child::before { content: ""; margin-right: 0; }
+
+  /* ---------- sections ---------- */
+  section { padding: 56px 0; border-bottom: 1px solid var(--border); }
+  h2 {
+    font-size: 24px;
+    color: var(--text-strong);
+    margin: 0 0 8px;
+    letter-spacing: -0.3px;
+  }
+  .lead { color: var(--muted); max-width: 44em; margin: 0 0 28px; }
+  h3 { font-size: 17px; color: var(--text-strong); margin: 0 0 8px; }
+
+  /* ---------- features ---------- */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 16px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+    transition: border-color .15s ease;
+  }
+  .card:hover { border-color: var(--border-strong); }
+  .card h3 { font-size: 15px; margin-bottom: 6px; }
+  .card h3 .mono { font-family: var(--mono); color: var(--accent); }
+  .card p { font-size: 14px; color: var(--muted); margin: 0; }
+
+  /* ---------- architecture ---------- */
+  .arch-frame {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px;
+    overflow-x: auto;
+  }
+  .arch-frame img { display: block; width: 100%; height: auto; min-width: 560px; }
+
+  /* ---------- quickstart ---------- */
+  .qs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+  }
+  .qs { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .qs-head {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-strong);
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-2);
+  }
+  pre {
+    margin: 0;
+    padding: 14px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #c9d1d9;
+    background: #0b0f14;
+    overflow-x: auto;
+    white-space: pre;
+  }
+
+  /* ---------- tables ---------- */
+  .table-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; min-width: 640px; }
+  th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { background: var(--surface-2); color: var(--text-strong); font-weight: 600; white-space: nowrap; }
+  tr:last-child td { border-bottom: none; }
+  td.mono, th.mono { font-family: var(--mono); }
+  .pill { display: inline-block; font-size: 12px; font-weight: 600; padding: 1px 9px; border-radius: 999px; white-space: nowrap; }
+  .pill-ro { color: var(--green); border: 1px solid rgba(63, 185, 80, .4); }
+  .pill-rw { color: var(--red); border: 1px solid rgba(248, 81, 73, .4); }
+  .num { font-family: var(--mono); color: var(--text-strong); white-space: nowrap; }
+
+  /* ---------- security list ---------- */
+  .sec-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+  .sec-list li {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 14px;
+  }
+  .sec-list li strong { color: var(--text-strong); font-weight: 600; }
+
+  /* ---------- footer ---------- */
+  footer { padding: 40px 0 56px; color: var(--muted); font-size: 13px; }
+  footer .row { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; }
+  footer a { color: var(--muted); }
+  footer a:hover { color: var(--text-strong); }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <span class="badge">Node.js · TypeScript · MCP</span>
+    <h1>Multi-Model <span class="accent">Broker</span></h1>
+    <p class="tagline">
+      一个面向 MCP 的多模型任务代理层：MCP 客户端（ChatGPT、Codex 或任何 harness）把任务交给它，
+      它按能力路由到本机或云端的多个 worker（本地 Codex、本地 Claude Code、DeepSeek、GLM、Gemini、mock），
+      返回统一结构的结果并留下可审计的 trace。读/写能力严格分离，写型 worker 只能经各自的写工具到达。
+    </p>
+    <div class="cta-row">
+      <a class="btn btn-primary" href="https://github.com/Bowen-studying/multimodel-broker">查看仓库</a>
+      <a class="btn btn-ghost" href="#quickstart">快速开始</a>
+    </div>
+    <div class="facts">
+      <span>Node.js ≥ 22.5</span>
+      <span>TypeScript</span>
+      <span>零原生模块</span>
+      <span>263 测试 / 33 文件</span>
+      <span>测试全部离线</span>
+    </div>
+  </div>
+</header>
+
+<section id="about">
+  <div class="wrap">
+    <h2>它解决什么</h2>
+    <p class="lead">
+      把「用哪个模型、交给本机还是云端、怎么回收结果、怎么留痕」这些决策从客户端里抽出来，收敛到一处。
+      客户端只按统一结构提交任务，Broker 负责路由、并发、幂等、超时与审计；读路径和写路径分开，
+      写盘只能通过明确标注的写工具触发。它不替代任何模型，只在模型之上加一层可验证的调度与隔离。
+    </p>
+    <div class="grid">
+
+      <div class="card">
+        <h3>MCP 双传输</h3>
+        <p>stdio 接入本地 harness；Streamable HTTP（回环 + 共享密钥，可选 SSE 应答）供网络侧客户端使用。</p>
+      </div>
+      <div class="card">
+        <h3>确定性路由</h3>
+        <p>按 requirements + 能力声明选择 worker，链式回退；显式指定 worker 永不被改写，无需 LLM 参与路由。</p>
+      </div>
+      <div class="card">
+        <h3>长任务与并发</h3>
+        <p>waitMs 内阻塞返回；超时返回 taskId 用 get_task 轮询。每 worker 并发上限 + 全局上限。</p>
+      </div>
+      <div class="card">
+        <h3>幂等</h3>
+        <p>idempotencyKey 去重，重复提交只等待不重跑，避免二次计费。</p>
+      </div>
+      <div class="card">
+        <h3>审计 trace</h3>
+        <p>每次委派记录 goal、路由原因、provider/model、时间、工具事件、用量与错误。</p>
+      </div>
+      <div class="card">
+        <h3>读写隔离</h3>
+        <p>只读工具拒绝写型 adapter；写型 worker 只能经写工具到达，并标注 readOnlyHint: false。</p>
+      </div>
+      <div class="card">
+        <h3>公网可达不开端口</h3>
+        <p>relay 子命令让本机主动外连自建中继（Cloudflare Worker + Durable Object），无需开放入站端口。</p>
+      </div>
+      <div class="card">
+        <h3>本地 agent 接入</h3>
+        <p>codex-sdk 与 claude-code adapter；claude-code 后端可换成任意 Anthropic 兼容端点（默认 DeepSeek）。</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<section id="architecture">
+  <div class="wrap">
+    <h2>架构</h2>
+    <p class="lead">客户端经本地 stdio 或公网中继进入 Broker Core，Core 把读工具路由到只读 worker、把写工具路由到写型 worker。</p>
+    <div class="arch-frame">
+      <img src="assets/architecture.svg" alt="Multi-Model Broker 架构图：MCP 客户端 → 传输（本地 stdio / 公网中继）→ Broker Core（Router / Scheduler / TaskManager / TraceStore）→ Provider adapters（只读 worker 与写型 worker）">
+    </div>
+  </div>
+</section>
+
+<section id="quickstart">
+  <div class="wrap">
+    <h2>快速开始</h2>
+    <p class="lead">依赖 Node.js ≥ 22.5（使用内置 node:sqlite，无需原生模块与构建工具链）。</p>
+    <div class="qs-grid">
+
+      <div class="qs">
+        <div class="qs-head">安装与自检</div>
+        <pre>npm ci
+npm run check &amp;&amp; npm test &amp;&amp; npm run build
+node dist/cli/index.js doctor</pre>
+      </div>
+
+      <div class="qs">
+        <div class="qs-head">本地 stdio 接入</div>
+        <pre>node dist/cli/index.js mcp-stdio \
+  --profile local-full</pre>
+      </div>
+
+      <div class="qs">
+        <div class="qs-head">回环 HTTP 接入</div>
+        <pre>node dist/cli/index.js mcp-http \
+  --profile chatgpt-pro-readonly \
+  --token-env BROKER_HTTP_TOKEN \
+  --port 8789</pre>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<section id="tools">
+  <div class="wrap">
+    <h2>工具</h2>
+    <p class="lead">MCP 面共 10 个注册工具，三种 profile 分别暴露 7 / 9 / 8 个；只读与写型分开标注。</p>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th class="mono">工具</th>
+            <th>类型</th>
+            <th>说明</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="mono">ping</td><td><span class="pill pill-ro">只读</span></td><td>Broker 健康探测</td></tr>
+          <tr><td class="mono">list_workers</td><td><span class="pill pill-ro">只读</span></td><td>列出已配置 worker 及其能力与健康状态</td></tr>
+          <tr><td class="mono">run_worker</td><td><span class="pill pill-ro">只读</span></td><td>路由到某个只读 worker 执行，拒绝写型 adapter</td></tr>
+          <tr><td class="mono">run_agent</td><td><span class="pill pill-rw">写型</span></td><td>驱动本地 Codex agent（可写允许清单工作区），readOnlyHint: false · destructiveHint: true</td></tr>
+          <tr><td class="mono">run_claude_code</td><td><span class="pill pill-rw">写型</span></td><td>驱动本地 Claude Code（DeepSeek 后端），readOnlyHint: false · destructiveHint: true</td></tr>
+          <tr><td class="mono">delegate</td><td><span class="pill pill-ro">只读</span></td><td>单任务委派，拒绝写型 adapter</td></tr>
+          <tr><td class="mono">delegate_batch</td><td><span class="pill pill-ro">只读</span></td><td>一次最多 8 个任务并行，部分失败也保留结果</td></tr>
+          <tr><td class="mono">get_task</td><td><span class="pill pill-ro">只读</span></td><td>按 taskId 轮询长任务结果</td></tr>
+          <tr><td class="mono">get_trace</td><td><span class="pill pill-ro">只读</span></td><td>读取某次委派的审计 trace</td></tr>
+          <tr><td class="mono">cancel_task</td><td><span class="pill pill-ro">只读</span></td><td>取消排队/运行中的任务（本地运维工具，默认不下发给远程客户端）</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="cost">
+  <div class="wrap">
+    <h2>实测成本</h2>
+    <p class="lead">2026-09-17 在本机（WSL2 + AMD Radeon 780M iGPU，无 CUDA）实测，仅作量级参考。</p>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>路径</th>
+            <th>实测</th>
+            <th>说明</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>直连 API 单次最小任务</td>
+            <td class="num">≈ $0.00007</td>
+            <td>35 in / 50 out，deepseek-flash</td>
+          </tr>
+          <tr>
+            <td>本地 Claude Code harness 单次</td>
+            <td class="num">$0.0002 – 0.005</td>
+            <td>每轮约 24k tokens 系统提示 + 工具 schema，多由前缀缓存承担</td>
+          </tr>
+          <tr>
+            <td>余额差法校准</td>
+            <td class="num">6 次共 ¥0.01（≈ $0.00024/次）</td>
+            <td>唯一权威口径（GET /user/balance）</td>
+          </tr>
+          <tr>
+            <td>一次真实写文件验收</td>
+            <td class="num">3 – 4 秒 / 估算 $0.00038 – 0.00096</td>
+            <td>磁盘 sha256 核对；turns = 2</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="security">
+  <div class="wrap">
+    <h2>安全基线</h2>
+    <p class="lead">写盘与出网默认收紧，需要本地显式开启。</p>
+    <ul class="sec-list">
+      <li><strong>密钥不进 argv</strong> — 只从环境 / .env 读取，不进配置文件；临时文件 0600、用完即删。</li>
+      <li><strong>prompt 默认不落库</strong> — storePrompts 默认 false，不持久化 prompt 原文。</li>
+      <li><strong>输出脱敏</strong> — 密钥 / token 形状的字符串一律替换后再入 trace。</li>
+      <li><strong>写型工具独立标注</strong> — readOnlyHint: false · destructiveHint: true，绝不混入只读工具。</li>
+      <li><strong>绝不自动重放</strong> — 中继断线返回 outcome_unknown，由上层 idempotencyKey 决定是否恢复。</li>
+      <li><strong>读/写凭据分离</strong> — 写型 worker 只能经 run_agent / run_claude_code 到达，只读工具拒绝写型 adapter。</li>
+    </ul>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="row">
+      <span>MIT License · © 2026 Bowen-studying</span>
+      <span>Multi-Model Broker · 无第三方追踪</span>
+      <span><a href="https://github.com/Bowen-studying/multimodel-broker">github.com/Bowen-studying/multimodel-broker</a></span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

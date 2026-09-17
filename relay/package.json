@@ -1,0 +1,20 @@
+{
+  "name": "multimodel-broker-relay",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Stable relay for the multimodel broker: a Cloudflare Worker + Durable Object that lets the local broker dial out and be reached at a fixed workers.dev URL. Transport only - it knows nothing about providers, routing or tasks.",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.9.0",
+    "@cloudflare/workers-types": "^5.20260916.1",
+    "typescript": "^5.9.0",
+    "vitest": "~3.2.0",
+    "wrangler": "^4.0.0"
+  }
+}

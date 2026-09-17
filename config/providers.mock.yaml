@@ -1,0 +1,47 @@
+# First-connection POC config: MockProvider only.
+#
+# Use this for the very first ChatGPT connection test (M0) so that a leaked or
+# mistyped URL cannot spend real provider quota: the only worker that exists is the
+# deterministic mock. Real providers live in config/providers.yaml (gitignored).
+providers:
+  mock:
+    enabled: true
+    adapter: mock
+    model: mock-model
+    authMode: unknown
+    maxConcurrency: 2
+    defaultTimeoutMs: 10000
+    mock:
+      delayMs: 5
+      behavior: success
+      answer: 'Mock answer: {{task}}'
+      usage: { inputTokens: 7, outputTokens: 3, cost: 0 }
+      rules:
+        - { match: 'slow:', delayMs: 20000, answer: 'Slow mock completed' }
+        - { match: 'fail:', behavior: fail, errorCode: PROVIDER_ERROR }
+
+routing:
+  general:
+    primary: mock
+    fallback: []
+
+concurrency:
+  global: 2
+  mock: 2
+
+limits:
+  defaultWaitMs: 15000
+  maxWaitMs: 45000
+  maxRetries: 1
+  retryBaseDelayMs: 200
+
+trace:
+  storePrompts: false
+  retentionDays: 7
+
+storage:
+  driver: sqlite
+  sqlitePath: data/broker-poc.sqlite
+
+server:
+  defaultProfile: chatgpt-pro-readonly

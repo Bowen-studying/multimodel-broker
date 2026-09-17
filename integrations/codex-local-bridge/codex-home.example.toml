@@ -1,0 +1,14 @@
+model = "spike-model"
+model_provider = "spike"
+model_context_window = 32000
+model_max_output_tokens = 2048
+approval_policy = "never"
+sandbox_mode = "read-only"
+
+[model_providers.spike]
+name = "spike"
+base_url = "http://127.0.0.1:8799/v1"
+wire_api = "responses"
+env_key = "SPIKE_KEY"
+requires_openai_auth = false
+supports_websockets = false

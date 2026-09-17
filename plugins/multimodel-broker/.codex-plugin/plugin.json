@@ -1,0 +1,34 @@
+{
+  "name": "multimodel-broker",
+  "version": "0.1.0",
+  "description": "Route and delegate tasks to the configured model workers (Codex, DeepSeek, GLM, Gemini, mock) through the Multi-Model Broker's MCP tools.",
+  "author": {
+    "name": "Bowen-studying",
+    "url": "https://github.com/Bowen-studying"
+  },
+  "repository": "https://github.com/Bowen-studying/multimodel-broker",
+  "keywords": [
+    "mcp",
+    "multi-model",
+    "delegation",
+    "routing",
+    "codex",
+    "chatgpt"
+  ],
+  "apps": "./.app.json",
+  "interface": {
+    "displayName": "Multimodel Broker",
+    "shortDescription": "Delegate tasks to multiple AI model workers",
+    "longDescription": "Inspect the configured model workers, delegate a task to a selected worker, or fan one call out across several workers and compare the answers. The plugin reuses the Multi-Model Broker app connection: every tool is read-only, spends provider quota, and returns text plus a task id and trace id for auditing.",
+    "developerName": "Bowen-studying",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read"
+    ],
+    "defaultPrompt": [
+      "List the available Multimodel Broker workers.",
+      "Delegate this task to an appropriate worker.",
+      "Run this task across several workers and compare the answers."
+    ]
+  }
+}

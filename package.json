@@ -1,0 +1,65 @@
+{
+  "name": "multimodel-broker",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Multi-Model Broker: an MCP-facing broker that routes tasks to local and cloud AI workers (local Codex, local Claude Code, DeepSeek, GLM, Gemini) with deterministic routing, concurrency, idempotency and an auditable trace.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Bowen-studying/multimodel-broker.git"
+  },
+  "homepage": "https://github.com/Bowen-studying/multimodel-broker#readme",
+  "bugs": {
+    "url": "https://github.com/Bowen-studying/multimodel-broker/issues"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "broker",
+    "router",
+    "codex",
+    "claude-code",
+    "deepseek",
+    "ai-agents",
+    "orchestration"
+  ],
+  "type": "module",
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "bin": {
+    "multimodel-broker": "dist/cli/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "check": "tsc --noEmit -p tsconfig.json",
+    "check:plugin": "node scripts/check-plugin.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "dev": "tsx src/cli/index.ts",
+    "mcp:chatgpt": "node dist/cli/index.js mcp-stdio --profile chatgpt-pro-readonly",
+    "mcp:local": "node dist/cli/index.js mcp-stdio --profile local-full",
+    "mcp:http": "node dist/cli/index.js mcp-http --profile chatgpt-pro-readonly",
+    "mcp:http:mock": "node dist/cli/index.js mcp-http --profile chatgpt-pro-readonly --config config/providers.mock.yaml",
+    "roundtrip:stdio": "node scripts/mcp-roundtrip.mjs",
+    "roundtrip:http": "node scripts/mcp-http-roundtrip.mjs",
+    "doctor": "node dist/cli/index.js doctor",
+    "smoke": "node scripts/smoke.mjs",
+    "smoke:codex": "node scripts/codex-scenario.mjs",
+    "smoke:codex:network": "node scripts/codex-network-scenario.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "yaml": "^2.9.1",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.3",
+    "tsx": "^4.23.13",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.1"
+  },
+  "optionalDependencies": {
+    "@openai/codex-sdk": "^0.154.0"
+  }
+}

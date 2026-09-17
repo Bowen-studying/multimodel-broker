@@ -1,0 +1,143 @@
+# Reference configuration for the SINGLE-ENTRY instance: one public connector that can both
+# delegate to API workers and drive the local Codex agent (read or write files).
+#
+# Copy to config/providers.agent.yaml (gitignored), point `workspaces.scratch` at a throwaway git
+# repository, give the instance its own token and its own database:
+#
+#   BROKER_HTTP_TOKEN="$(openssl rand -hex 24)" \
+#   node dist/cli/index.js mcp-http --config config/providers.agent.yaml \
+#     --profile chatgpt-agent --port 8790 --max-rpm 20 --max-concurrent 1
+#
+# Writing is a LOCAL decision: `sandbox` + `options.allowWritableSandbox` below are the only switch
+# (see ~/.broker-ops/broker-write-mode.sh on|off). A remote caller can never grant itself write
+# access, and if this file says read-only, run_agent still appears but every write is refused by the
+# sandbox. Real provider credentials are read from the environment/.env - never from this file.
+providers:
+  codex:
+    enabled: true
+    adapter: codex-sdk
+    model: auto
+    authMode: codex-local
+    maxConcurrency: 1
+    defaultTimeoutMs: 600000
+    sandbox: workspace-write          # read-only | workspace-write | danger-full-access (v0.1 forbids the last)
+    options:
+      requireWorkspace: true
+      allowWritableSandbox: true      # explicit local opt-in: the caller cannot grant itself this
+      networkAccessEnabled: false     # no egress, even while writing
+      webSearchMode: disabled
+      approvalPolicy: never           # a non-interactive broker cannot answer approvals
+      skipGitRepoCheck: false
+  codex-win:
+    # Optional: drive the Codex build that ships with the ChatGPT/Codex desktop app on Windows, so
+    # runs started here land in the Windows Codex store and show up inside that app. Point
+    # `codexPath` at that binary (visible from WSL as /mnt/<drive>/...) and keep `windowsPaths: true`
+    # so a /mnt/c/... workspace is translated into C:\... for it. Same unattended policy as `codex`.
+    enabled: false
+    adapter: codex-sdk
+    model: auto
+    authMode: codex-local
+    maxConcurrency: 1
+    defaultTimeoutMs: 600000
+    sandbox: workspace-write
+    options:
+      requireWorkspace: true
+      allowWritableSandbox: true
+      networkAccessEnabled: false
+      webSearchMode: disabled
+      approvalPolicy: never
+      skipGitRepoCheck: true            # the Windows workspace is not assumed to be a git repo
+      codexPath: /mnt/c/Users/<you>/AppData/Local/OpenAI/Codex/bin/codex.exe
+      windowsPaths: true
+
+  claude-code:
+    # Optional second local agent: the Claude Code CLI run headlessly on a cheaper OpenAI-compatible
+    # backend (DeepSeek by default). It edits files and runs commands, so it is reachable ONLY through
+    # run_claude_code - the router refuses write-capable adapters, keeping run_worker honest.
+    # `runnerPath` must point at integrations/claude-code/runner.mjs; the runner
+    # reads the backend url/token from `envScript` at run time and never takes a secret on argv.
+    enabled: false
+    adapter: claude-code
+    model: deepseek-flash
+    authMode: api-key
+    maxConcurrency: 3               # runs in the same directory are serialized by the provider
+    defaultTimeoutMs: 1800000       # long edits are expected; poll with get_task
+    options:
+      runnerPath: /absolute/path/to/multimodel-broker/integrations/claude-code/runner.mjs
+      envScript: ~/.hermes/scripts/claude_deepseek_env.sh   # holds ANTHROPIC_BASE_URL / ANTHROPIC_AUTH_TOKEN
+      permissionMode: auto          # auto | acceptEdits | plan (bypassPermissions needs allowBypassPermissions: true)
+      claudeBinary: /absolute/path/to/claude   # `command -v claude` - a service PATH often lacks it
+      defaultCwd: /absolute/path/to/a/working/directory
+  deepseek:
+    enabled: true
+    adapter: openai-compatible
+    baseUrl: https://api.deepseek.com
+    model: deepseek-flash
+    apiKeyEnv: DEEPSEEK_API_KEY
+    authMode: api-key
+    maxConcurrency: 4
+    defaultTimeoutMs: 120000
+    options: { healthCheck: models, maxTokens: 2048 }
+  glm:
+    enabled: true
+    adapter: openai-compatible
+    baseUrl: https://open.bigmodel.cn/api/paas/v4
+    model: glm-4-flash
+    apiKeyEnv: GLM_API_KEY
+    authMode: api-key
+    maxConcurrency: 4
+    defaultTimeoutMs: 120000
+    options: { healthCheck: models, maxTokens: 2048 }
+  mock:
+    enabled: true
+    adapter: mock
+    model: mock-model
+    authMode: unknown
+    maxConcurrency: 4
+    defaultTimeoutMs: 60000
+    mock:
+      delayMs: 5
+      behavior: success
+      answer: 'Mock answer: {{task}}'
+routing:
+  # Plain tasks land on a cheap API worker. Local agents are intentionally absent from every chain:
+  # the router refuses write-capable adapters, so a delegated task can never turn into a silent file
+  # modification - the caller names run_agent / run_claude_code instead.
+  coding: { primary: deepseek, fallback: [glm] }
+  long_context: { primary: deepseek, fallback: [glm] }
+  low_cost: { primary: deepseek, fallback: [glm, mock] }
+  chinese: { primary: glm, fallback: [deepseek, mock] }
+  general: { primary: deepseek, fallback: [glm, mock] }
+concurrency:
+  global: 6
+  codex: 1
+  codex-win: 1
+  claude-code: 3
+  deepseek: 4
+  glm: 4
+limits:
+  maxTaskChars: 20000
+  maxContextChars: 100000
+  defaultWaitMs: 15000
+  maxWaitMs: 45000
+  maxBatchTasks: 4
+  maxFiles: 10
+  maxFileBytes: 10485760
+  maxRetries: 2
+  retryBaseDelayMs: 250
+workspaces:
+  win-scratch: /mnt/c/Users/<you>/Documents/gpt-codex-bridge-scratch
+  # Only these trees may be touched by the agent. Add a real project deliberately, one at a time.
+  scratch: /absolute/path/to/a/throwaway/git/repo
+trace:
+  storePrompts: false
+  retentionDays: 30
+storage:
+  driver: sqlite
+  sqlitePath: data/broker-agent.sqlite   # keeps agent history separate from any read-only instance
+server:
+  defaultProfile: chatgpt-agent
+  # false (default) = only the names under `workspaces` may be used; true = any absolute path,
+  # minus the credential/system prefixes listed in src/security/paths.ts. Relative names always
+  # have to be allowlisted so a typo cannot resolve somewhere unexpected.
+  allowAnyWorkspace: false

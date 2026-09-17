@@ -1,0 +1,31 @@
+{
+  "id": "003-faraday-constant",
+  "domain": "physical-chemistry/electrochemistry",
+  "mode": "parallel_compare",
+  "task": "1 mol 电子所带的电荷是多少库仑？这个数字与法拉第常数是什么关系？请给出推导所依据的两个基本常量的数值。",
+  "criticalClaims": [
+    {
+      "claim": "1 mol 电子电荷 ≈ 96485 C/mol（通常写作 96500 C/mol），即法拉第常数 F。",
+      "verdict": "required"
+    },
+    {
+      "claim": "F = N_A × e，其中 N_A ≈ 6.022×10^23 /mol，e ≈ 1.602×10^-19 C。",
+      "verdict": "required"
+    },
+    {
+      "claim": "法拉第常数与“1 mol 电子的电荷”是同一个量的两种说法，不是两个不同的物理量。",
+      "verdict": "required"
+    }
+  ],
+  "expectedAdjudication": {
+    "mustDetect": [
+      "若某个候选给出 6.022×10^23 或 1.602×10^-19 作为“1 mol 电子的电荷”，必须判为量纲/数量级错误",
+      "若某个候选把 F 与 N_A×e 说成两个无关的常量，必须判为错误"
+    ],
+    "mustNotClaim": [
+      "96485 与 96500 是两个不同的结论（同一数值的不同精度写法）"
+    ],
+    "resolution": "≈96485 C/mol，F = N_A·e，并给出 N_A 与 e 的数值"
+  },
+  "source": "物理化学/电化学教材级常量（CODATA）；可独立验算 N_A × e"
+}

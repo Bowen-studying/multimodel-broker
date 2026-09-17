@@ -1,0 +1,20 @@
+{
+  "_comment": "Example LocalMCP configuration for the Multi-Model Broker (task book section 14.2). High-risk built-in capabilities are turned OFF for the POC. Adjust the path to dist/cli/index.js to your checkout.",
+  "features": {
+    "files": false,
+    "shell": false,
+    "processes": false
+  },
+  "mcpServers": {
+    "multimodel": {
+      "enabled": true,
+      "command": "node",
+      "args": [
+        "C:/projects/multimodel-broker/dist/cli/index.js",
+        "mcp-stdio",
+        "--profile",
+        "chatgpt-pro-readonly"
+      ]
+    }
+  }
+}

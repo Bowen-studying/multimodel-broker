@@ -1,0 +1,31 @@
+{
+  "id": "004-solid-solution-definition",
+  "domain": "materials-science/physical-metallurgy",
+  "mode": "parallel_compare",
+  "task": "什么是固溶体？请说明它和化合物在结构与成分上的主要区别。",
+  "criticalClaims": [
+    {
+      "claim": "固溶体是溶质原子溶入溶剂晶格后仍保持溶剂（基体）晶体结构的一种单相固相。",
+      "verdict": "required"
+    },
+    {
+      "claim": "固溶体的成分可以在一定范围内连续变化，不要求严格化学计量比；而化合物有确定的化学计量比与独立晶格。",
+      "verdict": "required"
+    },
+    {
+      "claim": "固溶体分为置换式和间隙式两种基本类型。",
+      "verdict": "optional"
+    }
+  ],
+  "expectedAdjudication": {
+    "mustDetect": [
+      "若某个候选说固溶体保持原有晶格但把成分变化范围说成“严格固定”，必须判为错误",
+      "必须指出两个候选如果只是措辞不同（例如“溶质溶入基体晶格”与“溶质原子取代/填入溶剂点阵”），不算冲突"
+    ],
+    "mustNotClaim": [
+      "两个候选的表述不同就等于是矛盾"
+    ],
+    "resolution": "给出固溶体的定义（单相、保持溶剂结构、成分可变范围）+ 与化合物的两点区别"
+  },
+  "source": "材料科学基础（物理冶金）教材级定义；本 fixture 同时检验“表述不同但都对”时不得误判为冲突"
+}

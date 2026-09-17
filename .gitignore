@@ -1,0 +1,28 @@
+node_modules/
+dist/
+coverage/
+*.log
+
+# secrets & local config
+.env
+.env.*
+!.env.example
+config/providers.yaml
+config/providers.local.yaml
+config/providers.agent.yaml
+
+# local runtime data (sqlite, traces, artifacts)
+data/
+*.sqlite
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
+
+# editor / os
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# probe by-products (diagnostics can drop these anywhere in the checkout)
+mcp_probe.err

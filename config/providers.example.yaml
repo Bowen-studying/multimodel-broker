@@ -1,0 +1,105 @@
+# Reference configuration for the Multi-Model Broker.
+# Copy to config/providers.yaml (gitignored) and fill in the environment variables.
+# ${VAR} placeholders are resolved from process.env after .env is loaded.
+providers:
+  mock:
+    enabled: true
+    adapter: mock
+    model: mock-model
+    authMode: unknown
+    maxConcurrency: 4
+    defaultTimeoutMs: 60000
+    mock:
+      delayMs: 5
+      behavior: success
+      answer: 'Mock answer: {{task}}'
+      usage: { inputTokens: 10, outputTokens: 5, cost: 0 }
+      failFirstAttempts: 0
+      rules:
+        - { match: 'fail:', behavior: fail, errorCode: PROVIDER_ERROR }
+        - { match: 'timeout:', behavior: timeout }
+        - { match: 'slow:', delayMs: 20000, answer: 'Slow mock completed' }
+  codex:
+    enabled: false
+    adapter: codex-sdk
+    model: auto
+    authMode: codex-local
+    maxConcurrency: 1
+    defaultTimeoutMs: 600000
+    sandbox: read-only
+    options:
+      requireWorkspace: true
+      skipGitRepoCheck: false
+  gemini:
+    enabled: false
+    adapter: gemini-api
+    baseUrl: https://generativelanguage.googleapis.com
+    model: ${GEMINI_MODEL}
+    apiKeyEnv: GEMINI_API_KEY
+    authMode: api-key
+    maxConcurrency: 2
+    defaultTimeoutMs: 120000
+    options:
+      # "models" (GET /v1beta/models) | "chat" (1-token probe) | "none"
+      healthCheck: models
+      apiVersion: v1beta
+      maxOutputTokens: 2048
+  deepseek:
+    enabled: false
+    adapter: openai-compatible
+    baseUrl: ${DEEPSEEK_BASE_URL}
+    model: ${DEEPSEEK_MODEL}
+    apiKeyEnv: DEEPSEEK_API_KEY
+    authMode: api-key
+    maxConcurrency: 4
+    defaultTimeoutMs: 120000
+    options:
+      healthCheck: models        # falls back to a 1-token chat probe when /models is unsupported
+      maxTokens: 2048
+      # chatPath: /v1/chat/completions   # defaults; change only for provider-specific APIs
+      # modelsPath: /models
+      # extraBody: { }                   # provider-specific knobs stay here, never in shared code
+  glm:
+    enabled: false
+    adapter: openai-compatible
+    baseUrl: ${GLM_BASE_URL}
+    model: ${GLM_MODEL}
+    apiKeyEnv: GLM_API_KEY
+    authMode: api-key
+    maxConcurrency: 4
+    defaultTimeoutMs: 120000
+    options:
+      healthCheck: models
+      maxTokens: 2048
+routing:
+  coding: { primary: codex, fallback: [deepseek, gemini, mock] }
+  long_context: { primary: gemini, fallback: [glm, deepseek, mock] }
+  low_cost: { primary: deepseek, fallback: [glm, mock] }
+  chinese: { primary: glm, fallback: [deepseek, gemini, mock] }
+  general: { primary: mock, fallback: [] }
+concurrency:
+  global: 5
+  mock: 4
+  codex: 1
+  gemini: 2
+  deepseek: 4
+  glm: 4
+limits:
+  maxTaskChars: 100000
+  maxContextChars: 500000
+  defaultWaitMs: 15000
+  maxWaitMs: 45000
+  maxBatchTasks: 8
+  maxFiles: 20
+  maxFileBytes: 10485760
+  maxRetries: 2
+  retryBaseDelayMs: 250
+workspaces: {}
+trace:
+  storePrompts: false
+  retentionDays: 30
+storage:
+  driver: memory
+  sqlitePath: data/broker.sqlite
+server:
+  defaultProfile: chatgpt-pro-readonly

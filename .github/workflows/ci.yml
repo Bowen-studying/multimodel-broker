@@ -1,0 +1,41 @@
+name: CI
+
+# The suite is offline by design: no provider credentials are used, the Codex and
+# provider tests inject fakes, and `smoke`/`codex-*` acceptance scripts (which do
+# spend quota) are deliberately NOT part of CI.
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check-test-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Type check
+        run: npm run check
+
+      # Metadata-only gate: plugin wrapper structure, and proof that it carries no
+      # endpoint URL, token or key.
+      - name: Check plugin wrapper
+        run: npm run check:plugin
+
+      # Tests spawn `dist/cli/index.js`, so build first.
+      - name: Build
+        run: npm run build
+
+      - name: Test
+        run: npm test

@@ -1,0 +1,57 @@
+{
+  "id": "001-lattice-basis",
+  "domain": "materials-science/crystallography",
+  "mode": "parallel_compare",
+  "task": "解释晶格和基元的区别。",
+  "criticalClaims": [
+    {
+      "claim": "晶格（点阵）点是抽象的等价点，描述平移对称下的等价位置，本身不代表任何原子、分子或离子。",
+      "verdict": "required"
+    },
+    {
+      "claim": "晶体结构 = 点阵 + 基元（motif）；只有点阵不构成真实晶体结构。",
+      "verdict": "required"
+    },
+    {
+      "claim": "基元是附着在每个点阵点上的原子/离子/分子集团，不是“构成晶格的单元”——点阵本身是抽象点阵，不由基元“构成”。",
+      "verdict": "required"
+    }
+  ],
+  "knownFailures": [
+    {
+      "worker": "glm",
+      "taskId": "236be2cf-0000-4000-8000-000000000000",
+      "observedAt": "2026-09-17T02:24:25Z",
+      "claim": "“在晶格中，每个点代表一个原子、分子或离子”",
+      "explanation": "把点阵点等同于实际占据者；点阵点只是等价位置，占据与否由基元决定。"
+    },
+    {
+      "worker": "glm",
+      "taskId": "236be2cf-0000-4000-8000-000000000000",
+      "observedAt": "2026-09-17T02:24:25Z",
+      "claim": "“基元则是构成晶格的最基本单元”",
+      "explanation": "关系说反了：基元挂在点阵点上，点阵是抽象点阵；正确关系是 crystal structure = lattice + basis。"
+    }
+  ],
+  "knownCorrect": [
+    {
+      "worker": "deepseek",
+      "taskId": "2b80e1aa-0000-4000-8000-000000000000",
+      "observedAt": "2026-09-17T02:28:45Z",
+      "note": "本机同题探针回答正确：“晶格点是抽象数学点…晶格点加基元才构成真实的晶体结构”"
+    }
+  ],
+  "expectedAdjudication": {
+    "mustDetect": [
+      "GLM 把点阵点等同为原子的说法是错的",
+      "GLM 把基元说成“构成晶格的单元”是错的（关系倒置）",
+      "DeepSeek 的“点阵 + 基元”表述与 GLM 并不等价，不能算作共识"
+    ],
+    "mustNotClaim": [
+      "两个答案意思相同，只是措辞不同",
+      "点阵点确实对应一个原子"
+    ],
+    "resolution": "指出 GLM 的两处错误，并给出 crystal structure = lattice + basis 的正确表述"
+  },
+  "source": "M2c 实测（deployment notes，taskId 236be2cf-0000-4000-8000-000000000000）+ DeepSeek 同题探针（taskId 2b80e1aa-0000-4000-8000-000000000000）；结晶学教材级定义"
+}
