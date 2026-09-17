@@ -1,5 +1,14 @@
 # Multi-Model Broker
 
+[![CI](https://github.com/Bowen-studying/multimodel-broker/actions/workflows/ci.yml/badge.svg)](https://github.com/Bowen-studying/multimodel-broker/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+![Node](https://img.shields.io/badge/node-%E2%89%A5%2022.5-3c873a.svg)
+![Tests](https://img.shields.io/badge/tests-263%20passing-brightgreen.svg)
+![MCP](https://img.shields.io/badge/MCP-stdio%20%2B%20Streamable%20HTTP-6f42c1.svg)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178c6.svg)
+
+**中文** · [English](README.en.md)
+
 面向 MCP 的多模型任务代理层（broker）：MCP 客户端（ChatGPT、Codex 或任何 harness）把任务交给它，它按能力路由（router）到本机或云端的多个 worker（本地 Codex、本地 Claude Code、DeepSeek、GLM、Gemini、mock），返回统一结构的结果，并留下可审计的 trace。读/写能力严格分离，写型 worker 只能经各自的写工具到达。
 
 ## 特性
@@ -16,7 +25,7 @@
 
 ## 架构
 
-架构图见 [docs/assets/architecture.svg](docs/assets/architecture.svg)。
+![Multi-Model Broker 架构图：MCP 客户端 → 传输（本地 stdio / 公网中继）→ Broker Core（Router / Scheduler / TaskManager / TraceStore）→ Provider adapters（只读 worker 与写型 worker）](docs/assets/architecture.svg)
 
 ```text
 ┌──────────────────────────────────────────────────────────┐

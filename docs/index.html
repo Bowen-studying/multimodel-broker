@@ -121,14 +121,14 @@
   .card p { font-size: 14px; color: var(--muted); margin: 0; }
 
   /* ---------- architecture ---------- */
-  .arch-frame {
+  .arch-frame svg { width: 100%; height: auto; display: block; }
+    .arch-frame {
     background: var(--bg);
     border: 1px solid var(--border);
     border-radius: 10px;
     padding: 8px;
     overflow-x: auto;
   }
-  .arch-frame img { display: block; width: 100%; height: auto; min-width: 560px; }
 
   /* ---------- quickstart ---------- */
   .qs-grid {
@@ -263,7 +263,147 @@
     <h2>架构</h2>
     <p class="lead">客户端经本地 stdio 或公网中继进入 Broker Core，Core 把读工具路由到只读 worker、把写工具路由到写型 worker。</p>
     <div class="arch-frame">
-      <img src="assets/architecture.svg" alt="Multi-Model Broker 架构图：MCP 客户端 → 传输（本地 stdio / 公网中继）→ Broker Core（Router / Scheduler / TaskManager / TraceStore）→ Provider adapters（只读 worker 与写型 worker）">
+      <svg role="img" aria-label="Multi-Model Broker 架构图：MCP 客户端 → 传输（本地 stdio / 公网中继）→ Broker Core → Provider adapters（只读 worker / 写型 worker）" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 600" role="img" aria-labelledby="title desc">
+  <title id="title">Multi-Model Broker architecture</title>
+  <desc id="desc">MCP clients (ChatGPT, Codex, any harness) connect via local stdio or an outbound relay to the Broker Core (Router, Scheduler, TaskManager, TraceStore), which routes read tools to read-only workers and write tools (run_agent / run_claude_code) to write-capable workers.</desc>
+
+  <style>
+    .t  { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; }
+    .m  { font-family: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, "Liberation Mono", monospace; }
+    .title    { fill: #e6edf3; font-size: 19px; font-weight: 700; }
+    .subtitle { fill: #7d8894; font-size: 12px; }
+    .panel-title { fill: #e6edf3; font-size: 13px; font-weight: 700; letter-spacing: 0.4px; }
+    .box-label   { fill: #e6edf3; font-size: 13px; font-weight: 600; }
+    .box-label-m { fill: #e6edf3; font-size: 12px; font-weight: 600; }
+    .box-sub     { fill: #7d8894; font-size: 11px; }
+    .group-label { fill: #8b949e; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; }
+    .note        { fill: #7d8894; font-size: 11px; }
+    .legend      { fill: #c9d1d9; font-size: 12px; }
+  </style>
+
+  <rect width="1280" height="600" fill="#0b0f14"/>
+
+  <text x="24" y="40" class="t title">Multi-Model Broker — Architecture</text>
+  <text x="24" y="62" class="m subtitle">MCP 任务代理层 · 读/写通道分离 · 确定性路由</text>
+
+  <defs>
+    <marker id="ah-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#58a6ff"/>
+    </marker>
+    <marker id="ah-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#3fb950"/>
+    </marker>
+    <marker id="ah-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#f85149"/>
+    </marker>
+    <marker id="ah-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#bc8cff"/>
+    </marker>
+    <marker id="ah-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#7d8894"/>
+    </marker>
+  </defs>
+
+  <rect x="24" y="88" width="280" height="180" rx="10" fill="#10161e" stroke="#222b36"/>
+  <text x="40" y="112" class="t panel-title">MCP 客户端</text>
+
+  <rect x="40" y="124" width="248" height="40" rx="6" fill="#161d27" stroke="#2a3441"/>
+  <text x="164" y="149" text-anchor="middle" class="m box-label">ChatGPT</text>
+
+  <rect x="40" y="170" width="248" height="40" rx="6" fill="#161d27" stroke="#2a3441"/>
+  <text x="164" y="195" text-anchor="middle" class="m box-label">Codex</text>
+
+  <rect x="40" y="216" width="248" height="40" rx="6" fill="#161d27" stroke="#2a3441"/>
+  <text x="164" y="241" text-anchor="middle" class="t box-label">任意 harness</text>
+
+  <rect x="24" y="300" width="280" height="180" rx="10" fill="#10161e" stroke="#222b36"/>
+  <text x="40" y="324" class="t panel-title">传输</text>
+
+  <rect x="40" y="336" width="248" height="48" rx="6" fill="#161d27" stroke="#3b82f6"/>
+  <text x="164" y="364" text-anchor="middle" class="m box-label">本地 stdio</text>
+
+  <rect x="40" y="396" width="248" height="68" rx="6" fill="#161d27" stroke="#bc8cff"/>
+  <text x="164" y="420" text-anchor="middle" class="t box-label">公网中继</text>
+  <text x="164" y="442" text-anchor="middle" class="t box-sub">本机主动外连 · 不开端口</text>
+
+  <line x1="164" y1="272" x2="164" y2="294" stroke="#7d8894" stroke-width="1.5" marker-end="url(#ah-muted)"/>
+
+  <line x1="288" y1="364" x2="332" y2="364" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#ah-blue)"/>
+  <line x1="288" y1="430" x2="332" y2="430" stroke="#bc8cff" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#ah-purple)"/>
+
+  <rect x="336" y="88" width="548" height="392" rx="10" fill="#10161e" stroke="#222b36"/>
+  <text x="352" y="112" class="t panel-title">Broker Core</text>
+
+  <rect x="352" y="128" width="254" height="72" rx="6" fill="#161d27" stroke="#2a3441"/>
+  <text x="366" y="152" class="m box-label">Router</text>
+  <text x="366" y="172" class="t box-sub">确定性路由 · 无 LLM</text>
+
+  <rect x="614" y="128" width="254" height="72" rx="6" fill="#161d27" stroke="#2a3441"/>
+  <text x="628" y="152" class="m box-label">Scheduler</text>
+  <text x="628" y="172" class="t box-sub">并发 · FIFO 信号量</text>
+
+  <rect x="352" y="216" width="254" height="72" rx="6" fill="#161d27" stroke="#2a3441"/>
+  <text x="366" y="240" class="m box-label">TaskManager</text>
+  <text x="366" y="260" class="t box-sub">任务生命周期 · 幂等</text>
+
+  <rect x="614" y="216" width="254" height="72" rx="6" fill="#161d27" stroke="#2a3441"/>
+  <text x="628" y="240" class="m box-label">TraceStore</text>
+  <text x="628" y="260" class="t box-sub">追加式审计事件</text>
+
+  <rect x="352" y="304" width="516" height="38" rx="6" fill="#0f1a2e" stroke="#1f3a5f"/>
+  <text x="610" y="328" text-anchor="middle" class="t box-sub">确定性路由 · 链式回退 · 显式指定 worker 不改写</text>
+
+  <rect x="352" y="350" width="516" height="38" rx="6" fill="#0f1a2e" stroke="#1f3a5f"/>
+  <text x="610" y="374" text-anchor="middle" class="m box-sub">facade: submit / delegate / delegate_batch / get_task / get_trace / cancel</text>
+
+  <rect x="352" y="396" width="516" height="60" rx="6" fill="#161d27" stroke="#2a3441"/>
+  <text x="366" y="418" class="t box-sub">MCP 工具层只调用 Broker facade，不直接触碰 provider / storage</text>
+  <text x="366" y="438" class="t box-sub">Core 不依赖 ChatGPT，也不依赖 MCP</text>
+
+  <line x1="884" y1="200" x2="912" y2="200" stroke="#3fb950" stroke-width="2" marker-end="url(#ah-green)"/>
+  <text x="854" y="192" text-anchor="middle" class="t box-sub" fill="#3fb950">读工具</text>
+  <line x1="884" y1="350" x2="912" y2="350" stroke="#f85149" stroke-width="2" marker-end="url(#ah-red)"/>
+  <text x="854" y="342" text-anchor="middle" class="t box-sub" fill="#f85149">写工具</text>
+
+  <rect x="916" y="88" width="340" height="392" rx="10" fill="#10161e" stroke="#222b36"/>
+  <text x="932" y="112" class="t panel-title">Provider adapters</text>
+
+  <text x="932" y="138" class="t group-label" fill="#3fb950">只读 worker</text>
+
+  <rect x="932" y="150" width="160" height="50" rx="6" fill="#161d27" stroke="#3fb950"/>
+  <text x="944" y="172" class="m box-label-m">DeepSeek</text>
+  <text x="944" y="190" class="m box-sub">openai-compatible</text>
+
+  <rect x="1100" y="150" width="140" height="50" rx="6" fill="#161d27" stroke="#3fb950"/>
+  <text x="1112" y="172" class="m box-label-m">GLM</text>
+  <text x="1112" y="190" class="m box-sub">openai-compatible</text>
+
+  <rect x="932" y="208" width="160" height="50" rx="6" fill="#161d27" stroke="#3fb950"/>
+  <text x="944" y="230" class="m box-label-m">Gemini</text>
+  <text x="944" y="248" class="m box-sub">Generative Language API</text>
+
+  <rect x="1100" y="208" width="140" height="50" rx="6" fill="#161d27" stroke="#3fb950"/>
+  <text x="1112" y="230" class="m box-label-m">mock</text>
+  <text x="1112" y="248" class="m box-sub">注入实现 · 离线</text>
+
+  <text x="932" y="280" class="t group-label" fill="#f85149">写型 worker</text>
+
+  <rect x="932" y="292" width="308" height="54" rx="6" fill="#1d1315" stroke="#f85149"/>
+  <text x="944" y="314" class="t box-label-m">本地 Codex</text>
+  <text x="944" y="334" class="m box-sub">run_agent · readOnlyHint: false · destructiveHint: true</text>
+
+  <rect x="932" y="354" width="308" height="54" rx="6" fill="#1d1315" stroke="#f85149"/>
+  <text x="944" y="376" class="t box-label-m">本地 Claude Code</text>
+  <text x="944" y="396" class="m box-sub">run_claude_code · DeepSeek 后端</text>
+
+  <text x="932" y="432" class="t note">写型 worker 只能经 run_agent / run_claude_code 到达</text>
+
+  <rect x="24" y="516" width="14" height="14" rx="3" fill="#3fb950"/>
+  <text x="46" y="527" class="m legend">读工具 → 只读 worker：run_worker / delegate / delegate_batch</text>
+
+  <rect x="24" y="544" width="14" height="14" rx="3" fill="#f85149"/>
+  <text x="46" y="555" class="m legend">写工具 → 写型 worker：run_agent / run_claude_code</text>
+</svg>
     </div>
   </div>
 </section>

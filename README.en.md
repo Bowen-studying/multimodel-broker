@@ -1,5 +1,14 @@
 # Multi-Model Broker
 
+[![CI](https://github.com/Bowen-studying/multimodel-broker/actions/workflows/ci.yml/badge.svg)](https://github.com/Bowen-studying/multimodel-broker/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+![Node](https://img.shields.io/badge/node-%E2%89%A5%2022.5-3c873a.svg)
+![Tests](https://img.shields.io/badge/tests-263%20passing-brightgreen.svg)
+![MCP](https://img.shields.io/badge/MCP-stdio%20%2B%20Streamable%20HTTP-6f42c1.svg)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178c6.svg)
+
+**English** · [中文](README.md)
+
 An MCP-facing task broker for multiple models: an MCP client (ChatGPT, Codex, or any harness) hands it a task, it routes it by capability to a local or cloud worker (local Codex, local Claude Code, DeepSeek, GLM, Gemini, mock), returns one normalized result, and leaves an auditable trace. Read and write capabilities are strictly separated — a write-capable worker can only be reached through its own dedicated write tool.
 
 ## Features
@@ -16,7 +25,7 @@ Put several models behind one MCP interface: a supervisor (e.g. ChatGPT Pro) onl
 
 ## Architecture
 
-See [docs/assets/architecture.svg](docs/assets/architecture.svg).
+![Multi-Model Broker architecture: MCP client → transport (local stdio / public relay) → Broker Core (Router / Scheduler / TaskManager / TraceStore) → provider adapters (read-only workers and write-capable workers)](docs/assets/architecture.svg)
 
 ```text
 ┌──────────────────────────────────────────────────────────┐
