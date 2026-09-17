@@ -122,30 +122,6 @@ Under the relay, the machine acts as a client that **dials out** to a self-hoste
 - Idempotency keys prevent double billing: `idempotencyKey` deduplicates; a repeated submission only waits, it does not re-run
 - Read/write credential separation: the read path uses each provider's API key (environment variable), while write-capable local agents use the machine's existing login (Codex subscription / local Claude Code CLI); the two are never shared
 
-## A real run (local Claude Code writing a file)
-
-Verbatim output of a `run_claude_code` call made through MCP from a remote client (local WSL2, 2026-09-17). The verdict comes from the disk, not from the model's own summary: the file exists, its content equals the unique marker, and the sha256 checks out.
-
-![A real run_claude_code call: 3 s, usage cost 0.000378 USD, file verified by sha256](docs/assets/run-claude-code.png)
-
-## Measured results (2026-09-17, local WSL2 + AMD Radeon 780M iGPU, no CUDA)
-
-### Cost
-
-| Path | Measured | Notes |
-|---|---|---|
-| Direct API, smallest single task | ≈ $0.00007 | 35 in / 50 out, deepseek-flash |
-| Local Claude Code harness, single run | $0.0002–0.005 | fixed ~24k tokens per round (system prompt + tool schemas), mostly covered by prefix cache |
-| Balance-difference calibration | 6 calls, ¥0.01 total (≈ $0.00024/call) | the only authoritative figure (`GET /user/balance`) |
-| One real write-file acceptance | 3–4 s / est. $0.00038–0.00096 | on-disk sha256 check; turns=2 |
-
-### Prefix cache (already hitting)
-
-- DeepSeek's automatic disk cache requires "matching a full cache prefix unit"; in a controlled experiment the 2nd request hit 1408 tokens
-- Claude Code's request prefix (system + 27 tool schemas) is byte-for-byte stable (identical hashes across three runs)
-- Its reported `cache_read_input_tokens: 0` is a reporting issue, not a miss; the balance-difference method shows real billing ~31× lower than a full miss
-- Conclusion: no cache optimization is needed — just "don't change the prefix; put variable content after it"
-
 ## Production boundaries / known limitations
 
 - Claude Code's self-reported `total_cost_usd` uses Anthropic pricing, ~500× higher than what DeepSeek actually charges — never treat it as the bill

@@ -122,30 +122,6 @@ node dist/cli/index.js relay setup|start|status|stop|url         # 公网（自�
 - 幂等键防二次计费：`idempotencyKey` 去重，重复提交只等待不重跑
 - 读/写凭据分离：只读路径走各提供方的 API key（环境变量），写型本地 agent 走本机已有的登录态（Codex 订阅 / 本地 Claude Code CLI），互不共享
 
-## 真实运行（本地 Claude Code 写文件）
-
-远程 MCP 客户端调用 `run_claude_code` 的实际输出（本机 WSL2，2026-09-17）。判定标准是磁盘，不是模型自述：文件存在、内容等于唯一标记、sha256 核对通过。
-
-![run_claude_code 实测：3 秒完成，usage cost 0.000378 USD，文件 sha256 核对通过](docs/assets/run-claude-code.png)
-
-## 实测数据（2026-09-17，本机 WSL2 + AMD Radeon 780M iGPU，无 CUDA）
-
-### 成本
-
-| 路径 | 实测 | 说明 |
-|---|---|---|
-| 直连 API 单次最小任务 | ≈ $0.00007 | 35 in / 50 out，deepseek-flash |
-| 本地 Claude Code harness 单次 | $0.0002–0.005 | 每轮固定 ~24k tokens（系统提示 + 工具 schema），多由前缀缓存承担 |
-| 余额差法校准 | 6 次调用共扣 ¥0.01（≈ $0.00024/次） | 唯一权威口径（`GET /user/balance`） |
-| 一次真实写文件验收 | 3–4 秒 / 估算 $0.00038–0.00096 | 磁盘 sha256 核对；turns=2 |
-
-### 前缀缓存（已经在命中）
-
-- DeepSeek 自动磁盘缓存要求"完整匹配某个缓存前缀单元"；受控实验里第 2 次请求即命中 1408 tokens
-- Claude Code 的请求前缀（system + 27 个工具 schema）逐字节稳定（三次运行哈希一致）
-- 它上报的 `cache_read_input_tokens: 0` 是上报问题，不是没命中；余额差法证明实际计费比全 miss 低约 31 倍
-- 结论：不需要为缓存做优化，只需"别改动前缀、把变化内容放在前缀之后"
-
 ## 生产可用性边界 / 已知限制
 
 - Claude Code 自报的 `total_cost_usd` 按 Anthropic 价目，比 DeepSeek 实收高约 500× —— 绝不当作账单

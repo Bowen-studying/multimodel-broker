@@ -469,56 +469,6 @@ node dist/cli/index.js doctor</pre>
   </div>
 </section>
 
-<section id="run">
-  <div class="wrap">
-    <h2>真实运行</h2>
-    <p class="lead">远程客户端经 MCP 调用 <span class="mono">run_claude_code</span>，由本地 Claude Code 写文件。判定标准是磁盘而不是模型自述：文件存在、内容等于唯一标记、sha256 核对通过。</p>
-    <div class="arch-frame">
-      <img src="assets/run-claude-code.png" alt="run_claude_code 实测输出：3 秒完成，cost 0.000378 USD，磁盘 sha256 核对通过" loading="lazy">
-    </div>
-  </div>
-</section>
-
-<section id="cost">
-  <div class="wrap">
-    <h2>实测成本</h2>
-    <p class="lead">2026-09-17 在本机（WSL2 + AMD Radeon 780M iGPU，无 CUDA）实测，仅作量级参考。</p>
-    <div class="table-scroll">
-      <table>
-        <thead>
-          <tr>
-            <th>路径</th>
-            <th>实测</th>
-            <th>说明</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>直连 API 单次最小任务</td>
-            <td class="num">≈ $0.00007</td>
-            <td>35 in / 50 out，deepseek-flash</td>
-          </tr>
-          <tr>
-            <td>本地 Claude Code harness 单次</td>
-            <td class="num">$0.0002 – 0.005</td>
-            <td>每轮约 24k tokens 系统提示 + 工具 schema，多由前缀缓存承担</td>
-          </tr>
-          <tr>
-            <td>余额差法校准</td>
-            <td class="num">6 次共 ¥0.01（≈ $0.00024/次）</td>
-            <td>唯一权威口径（GET /user/balance）</td>
-          </tr>
-          <tr>
-            <td>一次真实写文件验收</td>
-            <td class="num">3 – 4 秒 / 估算 $0.00038 – 0.00096</td>
-            <td>磁盘 sha256 核对；turns = 2</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-</section>
-
 <section id="security">
   <div class="wrap">
     <h2>安全基线</h2>
