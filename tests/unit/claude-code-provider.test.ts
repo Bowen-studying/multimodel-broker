@@ -63,6 +63,22 @@ describe("claude-code provider: result mapping", () => {
     expect(result.artifacts).toEqual([{ name: "a.txt", path: "/tmp/scratch/a.txt" }]);
   });
 
+  it("records an impossible usage pair instead of silently swallowing it", async () => {
+    // The harness aggregates per turn and sometimes reports cache_read > input_tokens. The miss share
+    // must then clamp to 0 (never bill more than reported) - but the reason has to survive into the
+    // audit line, otherwise whoever reconciles the numbers later is reading a quietly wrong figure.
+    const odd = summary({
+      usage: { input_tokens: 24693, cache_read_input_tokens: 24704, cache_creation_input_tokens: 0, output_tokens: 388 },
+      usage_note: "harness reported cache_read_input_tokens (24704) > input_tokens (24693); miss share clamped to 0",
+    });
+    const provider = new ClaudeCodeProvider("claude-code", config(), { exec: async () => execReturning([odd]) });
+    const result = await provider.run(request({ workspace: "/tmp/scratch" }), SIGNAL);
+
+    expect(result.usage).toMatchObject({ inputTokens: 24693, cacheHitTokens: 24704 });
+    expect(result.summary).toContain("usage_note=");
+    expect(result.summary).toContain("clamped to 0");
+  });
+
   it("passes task + context as one prompt and honours per-run model and timeout", async () => {
     const seen: Array<{ args: string[] }> = [];
     const provider = new ClaudeCodeProvider("claude-code", config(), {

@@ -282,6 +282,9 @@ export class ClaudeCodeProvider implements WorkerProvider {
       request.emit?.("tool.event", { provider: this.id, itemType: "command_execution", command });
     }
 
+    // An impossible usage pair is recorded rather than swallowed: see the runner's usage_note.
+    const usageNote = (summary as { usage_note?: string }).usage_note;
+
     const usage: WorkerResult["usage"] = {
       inputTokens: summary.usage?.input_tokens,
       outputTokens: summary.usage?.output_tokens,
@@ -312,6 +315,8 @@ export class ClaudeCodeProvider implements WorkerProvider {
       `files=${files.length}`,
       `commands=${(summary.commands ?? []).length}`,
       `denied=${(summary.permission_denials ?? []).length}`,
+      // Recorded, not swallowed: an inconsistent usage pair from the harness (see the runner).
+      ...(usageNote ? [`usage_note="${usageNote}"`] : []),
     ].join(" ");
 
     return {

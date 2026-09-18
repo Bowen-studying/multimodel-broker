@@ -201,6 +201,13 @@ fs.rmSync(path.dirname(settingsPath), { recursive: true, force: true });
 const inputTotal = Number(usageReported.input_tokens ?? 0);
 const inputHit = Number(usageReported.cache_read_input_tokens ?? 0);
 const inputMiss = Math.max(0, inputTotal - inputHit);
+// The harness aggregates per turn, so occasionally cache_read_input_tokens comes back LARGER than
+// input_tokens - physically impossible for one prompt. Clamping to zero is the only safe move here
+// (never bill more than reported), but silently clamping would hide the inconsistency from whoever
+// reconciles the numbers later, so it travels with the result as a note.
+const usageNote = inputHit > inputTotal
+  ? `harness reported cache_read_input_tokens (${inputHit}) > input_tokens (${inputTotal}); miss share clamped to 0 - treat cost_estimate_usd as a floor, and calibrate against the account balance`
+  : undefined;
 const outputTokens = Number(usageReported.output_tokens ?? 0);
 const costEstimate = (inputMiss * 0.30 + inputHit * 0.006 + outputTokens * 1.20) / 1e6;
 
@@ -221,6 +228,7 @@ const summary = {
     output_tokens: outputTokens,
   },
   cost_estimate_usd: Number(costEstimate.toFixed(6)),
+  ...(usageNote ? { usage_note: usageNote } : {}),
   cost_reported_usd: cost,
   duration_ms: durationMs,
   num_turns: numTurns,

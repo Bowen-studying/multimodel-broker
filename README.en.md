@@ -3,7 +3,7 @@
 [![CI](https://github.com/Bowen-studying/multimodel-broker/actions/workflows/ci.yml/badge.svg)](https://github.com/Bowen-studying/multimodel-broker/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ![Node](https://img.shields.io/badge/node-%E2%89%A5%2022.5-3c873a.svg)
-![Tests](https://img.shields.io/badge/tests-269%20passing-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)
 ![MCP](https://img.shields.io/badge/MCP-stdio%20%2B%20Streamable%20HTTP-6f42c1.svg)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178c6.svg)
 
@@ -59,7 +59,7 @@ Layering: the Core does not know about ChatGPT, and the providers do not know ab
 
 - Node.js >= 22.5 (uses the built-in `node:sqlite`), TypeScript, zero native modules, no build toolchain required
 - Dependencies: `@modelcontextprotocol/sdk` ^1.30, `zod` ^4.6, `yaml` ^2.9
-- Tests: 269 tests / 34 files (vitest), all offline and quota-free (providers are injected fakes)
+- Tests: the vitest suite runs fully offline and costs no quota (providers are injected fakes); the case count changes per commit - the CI badge is authoritative
 
 ## Quick start
 
@@ -167,7 +167,7 @@ src/interfaces/mcp/         tools · schemas · profiles · annotations · http 
 src/security/               redaction · secrets · paths
 src/relay/                  outbound relay client and connection management
 relay/                      relay side (Cloudflare Worker + Durable Object) and tests
-tests/                      269 tests (unit + integration)
+tests/                      vitest cases (unit + integration)
 config/                     example configs (providers.*.example.yaml / *.mock.yaml / localmcp.example.json)
 docs/                       architecture, security, remote access, ADRs (decisions/), eval fixtures
 integrations/claude-code/   local Claude Code runner (headless) + measurement scripts
@@ -179,7 +179,7 @@ plugins/                    Codex plugin wrapper layer
 
 ## Development
 
-- Tests: 269 tests / 34 files (vitest), all offline, no quota spent
+- Tests: the vitest suite runs fully offline and spends no quota; the case count changes per commit - the CI badge is authoritative
 - CI: GitHub Actions, runs check + test + build offline (no smoke that needs real quota/credentials)
 - Contributing: see [CONTRIBUTING.md](CONTRIBUTING.md)
 - Security reports: see [SECURITY.md](SECURITY.md)

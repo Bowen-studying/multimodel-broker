@@ -3,7 +3,7 @@
 [![CI](https://github.com/Bowen-studying/multimodel-broker/actions/workflows/ci.yml/badge.svg)](https://github.com/Bowen-studying/multimodel-broker/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ![Node](https://img.shields.io/badge/node-%E2%89%A5%2022.5-3c873a.svg)
-![Tests](https://img.shields.io/badge/tests-269%20passing-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)
 ![MCP](https://img.shields.io/badge/MCP-stdio%20%2B%20Streamable%20HTTP-6f42c1.svg)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178c6.svg)
 
@@ -59,7 +59,7 @@
 
 - Node.js >= 22.5（用内置 `node:sqlite`），TypeScript，零原生模块、无需构建工具链
 - 依赖：`@modelcontextprotocol/sdk` ^1.30、`zod` ^4.6、`yaml` ^2.9
-- 测试：269 个测试 / 34 个文件（vitest），全部离线，不花任何配额（provider 用注入的假实现）
+- 测试：vitest 全量离线运行，不花任何配额（provider 用注入的假实现）；用例数会随提交变化，以 CI 徽章为准
 
 ## 快速开始
 
@@ -165,7 +165,7 @@ src/interfaces/mcp/         tools · schemas · profiles · annotations · http 
 src/security/               redaction · secrets · paths
 src/relay/                  出站中继客户端与连接管理
 relay/                      中继侧（Cloudflare Worker + Durable Object）与测试
-tests/                      269 个测试（unit + integration）
+tests/                      vitest 用例（unit + integration）
 config/                     示例配置（providers.*.example.yaml / *.mock.yaml / localmcp.example.json）
 docs/                       架构、安全、远程接入、ADR（decisions/）、评测 fixtures
 integrations/claude-code/   本地 Claude Code runner（headless）+ 测量脚本
@@ -177,7 +177,7 @@ plugins/                    Codex 插件包装层
 
 ## 开发
 
-- 测试：269 个测试 / 34 个文件（vitest），全部离线，不花配额
+- 测试：vitest 全量离线运行，不花配额；用例数以 CI 徽章为准
 - CI：GitHub Actions，离线跑 check + test + build（不做需要真实配额/凭据的 smoke）
 - 贡献方式见 [CONTRIBUTING.md](CONTRIBUTING.md)
 - 安全报告见 [SECURITY.md](SECURITY.md)
