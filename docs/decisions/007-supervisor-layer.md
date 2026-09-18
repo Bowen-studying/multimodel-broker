@@ -3,6 +3,10 @@
 Status: accepted (2026-09-17). Extends 001 (broker core separation) and 005 (capabilities are
 declared, never assumed). Related: 006 (transport layering, the read-only cloud profile).
 
+> Partly superseded by **010**: the `chatgpt-pro-readonly` profile name used below no longer exists
+> (read-only is a config choice now, not a profile), and the tool surface is 9 tools with a single
+> write tool, `run_agent`.
+
 ## Context
 
 M2 verified multi-model orchestration end to end: explicit `run_worker`, `delegate_batch` with

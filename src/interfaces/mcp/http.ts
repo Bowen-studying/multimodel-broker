@@ -145,7 +145,7 @@ async function readBody(request: IncomingMessage): Promise<{ ok: true; value: un
  */
 export async function runMcpHttpServer(options: McpHttpOptions): Promise<McpHttpHandle> {
   const { broker, logger } = options;
-  const profile = resolveProfile(options.profile ?? "chatgpt-pro-readonly");
+  const profile = resolveProfile(options.profile ?? "chatgpt-agent");
   const tools = toolsForProfile(profile);
   const host = options.host ?? "127.0.0.1";
   const port = options.port ?? 8789;

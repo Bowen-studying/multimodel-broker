@@ -2,6 +2,10 @@
 
 Status: accepted (2026-09-16) - **the ChatGPT Pro path is NOT verified yet**
 
+> Partly superseded by **010**: the `chatgpt-pro-readonly` profile name used below no longer exists;
+> a read-only remote entry point is now a config choice (that instance enables no write-capable
+> worker) and the remaining profiles are `chatgpt-agent` (default) and `local-full`.
+
 ## Context
 
 ChatGPT Pro (developer mode) currently guarantees read/fetch MCP capability. Whether

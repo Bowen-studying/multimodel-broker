@@ -12,7 +12,7 @@ import type { ProviderConfig, ProviderHealth, WorkerProvider, WorkerRequest, Wor
  * Why a separate worker instead of folding it into `run_worker`
  * ------------------------------------------------------------
  * The delegation tools are advertised as `readOnlyHint: true`. This worker writes files, so it is
- * exposed through its own tool (`run_claude_code`) with honest annotations - see
+ * exposed through `run_agent(worker="claude-code")` with honest annotations - see
  * src/interfaces/mcp/annotations.ts.
  *
  * Measured facts this provider is built on (2026-09-17, this machine)
@@ -123,7 +123,7 @@ export class ClaudeCodeProvider implements WorkerProvider {
     // keep that door open). `auto` is not meaningful here: the CLI needs a concrete backend model.
     const configured = this.config.model?.trim();
     if (!configured || configured === "auto") {
-      throw new BrokerError("CONFIG_ERROR", `${this.id}: model must be a concrete backend model (e.g. deepseek-flash)`);
+      throw new BrokerError("CONFIG_ERROR", `${this.id}: set a concrete model id for this worker - the model is configuration, and this project ships no default`);
     }
     return configured;
   }

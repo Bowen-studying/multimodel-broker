@@ -14,7 +14,6 @@ import {
   ListWorkersSchema,
   PingSchema,
   RunAgentSchema,
-  RunClaudeCodeSchema,
   RunWorkerSchema,
   type DelegateBatchArgs,
   type GetTraceArgs,
@@ -41,13 +40,11 @@ export interface ToolMetadata {
 export const TOOL_DESCRIPTIONS: Record<ToolName, string> = {
   ping: "Health probe for the broker itself. Returns the service name. Use it to check the connection before delegating work.",
   list_workers:
-    "List the configured workers with enabled/healthy state, provider, model, auth mode, capabilities, max concurrency and (when unavailable) the reason. Call this before run_worker to pick a valid worker id.",
+    "List the configured workers with enabled/healthy state, provider, model, auth mode, capabilities, max concurrency and (when unavailable) the reason. Call this before run_worker to pick a valid worker id. A worker marked `defaultFor: [tool]` is the sticky choice that tool will use if you omit `worker` - call this first whenever you need to know what the current choice is before switching it.",
   run_worker:
-    "Run one explicitly chosen API worker on a task and return its answer. Choose the worker from list_workers: `deepseek` for general reasoning, explanation, code reading and second opinions at low cost; `glm` for Chinese-first or very cheap work; `mock` only to test connectivity. Blocks up to `waitMs` (default 15s, max 45s); if the worker is still running, returns status 'running' plus a taskId to poll with get_task. Read-only in the sense that it only spends model compute and returns text: it does not write files, repositories or third-party objects. Prefer this over run_agent whenever the task can be answered without access to the local machine.",
+    "Run one explicitly chosen API worker on a task and return its answer. Choose the worker from list_workers: `deepseek` for general reasoning, explanation, code reading and second opinions at low cost; `glm` for Chinese-first or very cheap work; `mock` only to test connectivity. Blocks up to `waitMs` (default 15s, max 45s); if the worker is still running, returns status 'running' plus a taskId to poll with get_task. Read-only in the sense that it only spends model compute and returns text: it does not write files, repositories or third-party objects. Prefer this over run_agent whenever the task can be answered without access to the local machine. The worker you name is remembered for this tool, so the next call may omit `worker` to keep using it - name a different worker only when you actually want to switch.",
   run_agent:
-    "Run a LOCAL Codex agent (worker 'codex', or 'codex-win' to use the Windows Codex build with Windows paths) that can read AND WRITE files, execute commands and run tests inside an allowlisted workspace. Use this when the task needs the user's own machine - inspecting or editing real files, running a build or a test suite, or verifying something on disk - and prefer run_worker when it does not; a Codex run is much slower and draws on a separate quota. Unlike run_worker this has real side effects: files on disk change. Blocks up to `waitMs` (default 15s, max 45s), then returns status 'running' plus a taskId to poll with get_task - the right pattern for edits that take minutes. Requires `workspace`; whether writing is allowed is a local configuration decision, not the caller's. Never advertised in a read-only profile.",
-  run_claude_code:
-    "Run a LOCAL Claude Code agent in full-auto mode that can read AND WRITE files and execute shell commands. Use this when the task must actually change something on this machine and you want a second, independent local agent besides Codex - e.g. a small focused edit, a script run, or delegating work while Codex keeps its own thread. It answers with the agent's final message plus an audit line (files touched, commands run, per-run cost). Costs about 0.0002-0.005 USD per run and takes seconds to minutes; a plain question does NOT need it - use run_worker for anything that only needs text. Blocks up to `waitMs` (default 15s, max 45s) and then returns status 'running' plus a taskId to poll with get_task; give the whole task in one message, because every extra agent turn re-sends the context and costs more. Requires `workspace` (the working directory the agent starts in). Never advertised in a read-only profile.",
+    "Run a LOCAL agent that can read AND WRITE files and execute shell commands - the only write-capable tool here. Choose `worker`: 'codex' (this machine's Codex; slower, draws on the Codex subscription quota, and `workspace` is a real write boundary the sandbox confines it to), 'codex-win' (the Windows Codex build, Windows paths, runs land in that machine's Codex store; same quota and sandbox), or 'claude-code' (the local Claude Code CLI on the backend its operator configured: seconds per small edit, billed per token to that backend, and `workspace` is only the STARTING directory because it runs as the operator's user). Prefer run_worker for anything that only needs text; use this when files must actually change. Your answer comes back with an audit line (files touched, commands run, cost). Blocks up to `waitMs` (default 15s, max 45s), then returns status 'running' plus a taskId to poll with get_task - give the whole task in one message, since every extra agent turn re-sends the context and costs more. Requires `workspace`. A worker that is not enabled on this machine is refused before anything runs. The worker you name is remembered (see defaultFor in list_workers): later calls may omit `worker` to reuse the same harness on a different task, and naming another one switches - so switching is always one explicit argument.",
   delegate:
     "Let the broker pick a worker deterministically from `requirements` (no LLM routing) and run the task. Returns the selected worker, the route reason, the route audit and the worker result or a taskId. Explicit `worker` is accepted and never rewritten.",
   delegate_batch:
@@ -145,9 +142,6 @@ export function registerTools(server: McpServer, broker: Broker, profile: Profil
   }
   if (enabled.has("run_agent")) {
     register(server, "run_agent", RunAgentSchema, async (args: Parameters<Broker["runAgent"]>[0]) => broker.runAgent(args) as Promise<Envelope>, log);
-  }
-  if (enabled.has("run_claude_code")) {
-    register(server, "run_claude_code", RunClaudeCodeSchema, async (args: Parameters<Broker["runClaudeCode"]>[0]) => broker.runClaudeCode(args) as Promise<Envelope>, log);
   }
   if (enabled.has("delegate")) {
     register(server, "delegate", DelegateSchema, async (args: Parameters<Broker["delegate"]>[0]) => broker.delegate(args) as Promise<Envelope>, log);

@@ -41,7 +41,7 @@ limits:
 workspaces: {}
 trace: { storePrompts: false, retentionDays: 1 }
 storage: { driver: memory, sqlitePath: data/broker.test.sqlite }
-server: { defaultProfile: chatgpt-pro-readonly }
+server: { defaultProfile: local-full }
 `;
 
 let tempDir: string;

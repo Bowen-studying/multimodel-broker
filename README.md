@@ -14,7 +14,7 @@
 ## 特性
 
 - 两种 MCP 传输：stdio（本地 harness）与 Streamable HTTP（回环 + 共享密钥，可选 SSE 应答）
-- 三种 profile（7 / 9 / 8 个工具）、10 个注册工具，读/写严格分离：写型 worker 只能经 `run_agent` / `run_claude_code` 到达
+- 两种 profile（8 / 8 个工具）、9 个注册工具，读/写严格分离：写型 worker 只能经 `run_agent` 到达，且必须先点名 worker（本仓库不预置默认模型）
 - 确定性路由：按 requirements（coding / long_context / low_cost / chinese / batch 等）+ 能力声明选择 worker，链式回退；显式指定 worker 永不被改写
 - 长任务、并发、幂等与审计：`delegate_batch` 一次最多 8 个任务并行，部分失败也保留结果；`idempotencyKey` 去重防二次计费；trace 默认不落 prompt 原文
 - 公网可达但不开端口：`relay` 让本机主动外连自建中继，远程客户端经固定 URL 访问
@@ -68,7 +68,7 @@ npm ci
 npm run check && npm test && npm run build
 node dist/cli/index.js doctor                      # 配置/存储/provider 健康
 node dist/cli/index.js mcp-stdio  --profile local-full          # 本地 stdio 接入
-node dist/cli/index.js mcp-http   --profile chatgpt-pro-readonly \
+node dist/cli/index.js mcp-http   --profile chatgpt-agent \
   --token-env BROKER_HTTP_TOKEN --port 8789                     # 回环 HTTP 接入
 node dist/cli/index.js relay setup|start|status|stop|url         # 公网（自建中继）
 ```
@@ -101,8 +101,7 @@ node dist/cli/index.js relay setup|start|status|stop|url         # 公网（自�
 | `ping` | true | false | 健康探测，返回服务名；委托前先测连通性 |
 | `list_workers` | true | false | 列出 worker 的启用/健康、provider、model、认证方式、能力、并发上限与不可用原因 |
 | `run_worker` | true | false | 在显式指定的 API worker 上跑任务并返回答案（只消耗算力、返回文本，不写文件/仓库/第三方对象） |
-| `run_agent` | **false** | **true** | 本地 Codex agent，可在 allowlisted workspace 内读写文件、执行命令/测试 |
-| `run_claude_code` | **false** | **true** | 本地 Claude Code agent（全自动），可读写文件、执行 shell 命令 |
+| `run_agent` | **false** | **true** | 唯一的写型本地 agent 入口；`worker`（`codex` / `codex-win` / `claude-code`）首次必须点名，之后可省略（沿用上次选择）。三者都以全自动模式读写文件、执行命令/测试；`workspace` 对 Codex 是 sandbox 写入边界，对 `claude-code` 只是起始目录 |
 | `delegate` | true | false | 按 requirements 确定性路由并运行，返回所选 worker、路由原因、路由审计与结果/任务 id |
 | `delegate_batch` | true | false | 一次调用内并行跑 1–8 个独立任务（mode 'parallel'，failurePolicy 'collect_all'），部分失败保留结果 |
 | `get_task` | true | false | 按 id 取任务状态、完成计数、子任务与（可选）已完成结果，用于轮询 |
@@ -111,20 +110,29 @@ node dist/cli/index.js relay setup|start|status|stop|url         # 公网（自�
 
 另有开发探针 `ui_probe`：仅在 `BROKER_UI_PROBE=1` 时注册（渲染服务端内联 UI 卡片并回报客户端是否渲染，不调用 worker、零成本），不属于任何 profile 的默认面。
 
-**写型 worker 只能经各自写工具到达**：只读工具（`run_worker` / `delegate` / `delegate_batch`）拒绝写型 adapter（`codex-sdk`、`claude-code`）；写型 worker 只能经 `run_agent`（本地 Codex）或 `run_claude_code`（本地 Claude Code）到达，这两个工具标注 `readOnlyHint: false, destructiveHint: true`。
+**写型 worker 只能经 `run_agent` 到达**：只读工具（`run_worker` / `delegate` / `delegate_batch`）拒绝写型 adapter（`codex-sdk`、`claude-code`）；写型 worker（本机 Codex / Windows Codex / 本地 Claude Code）只能经 `run_agent` 到达，该工具标注 `readOnlyHint: false, destructiveHint: true`，且**首次必须点名 worker**（本仓库不替调用方选模型）。被拒绝的 worker 不会被记住，所以不会留下一个用不了的选择。
 
-三个 profile：
+两个 profile：
 
-- `chatgpt-pro-readonly` —— 7 个只读工具（ChatGPT Pro 桥接用）
-- `chatgpt-agent` —— 上述 7 个 + `run_agent` / `run_claude_code`（9 个工具）
-- `local-full` —— 只读 7 个 + `cancel_task`（8 个工具，本地 harness 用）
+- `chatgpt-agent`（默认）—— 7 个只读工具 + `run_agent`（8 个工具）。远程客户端用这个；能不能真写取决于该实例本地是否启用了写型 worker
+- `local-full` —— 只读 7 个 + `cancel_task`（8 个工具，本地 harness 用；唯一能取消任务的入口，默认不下发给远程）
+
+> 想要"只读的远程入口"，做法是**给这个实例配一份不含写型 worker 的配置**（写工具虽然会列出，但一调用就被拒），而不是靠 profile 名——profile 只决定工具面，决定不了权限。
+
+### 模型选择是粘性的，且随时可切换
+
+- **点名即记住**：`run_agent` / `run_worker` 里显式给 `worker`，这个选择就成为该工具的默认，**后续调用可以省略 `worker` 而继续用它**
+- **显式即切换**：换一个 `worker` 就换了，且新选择成为新的默认——切换永远只是一次显式参数
+- **`model` 覆盖同理**：按 worker 记住，之后省略就沿用；传 `model: "auto"` 则忘掉覆盖、回到该 worker 配置里的模型
+- **不是静默的**：`list_workers` 会给当前被记住的 worker 标上 `defaultFor: ["run_agent"]`，trace 里也会有 `choice.remembered` 事件
+- **偏好存在实例自己的库里**，两个实例互不影响；本仓库**不预置任何默认模型**——模型是使用者的配置
 
 ## 三种接入方式
 
 | 方式 | 命令 | 适用 |
 |---|---|---|
 | 本地 stdio | `node dist/cli/index.js mcp-stdio --profile local-full` | 本机 harness（Codex / Claude Code / Hermes / MCP Inspector） |
-| 回环 Streamable HTTP + 共享密钥 | `node dist/cli/index.js mcp-http --profile chatgpt-pro-readonly --token-env BROKER_HTTP_TOKEN --port 8789` | ChatGPT connector，或任何无法 spawn 进程的客户端 |
+| 回环 Streamable HTTP + 共享密钥 | `node dist/cli/index.js mcp-http --profile chatgpt-agent --token-env BROKER_HTTP_TOKEN --port 8789` | ChatGPT connector，或任何无法 spawn 进程的客户端（只读实例的做法是这份配置不启用写型 worker） |
 | 自建中继（relay） | `node dist/cli/index.js relay setup|start|status|stop|url` | 手机 / 远程 MCP 客户端经固定 URL 访问 |
 
 中继方式下，本机作为客户端**主动外连**到自建中继（Cloudflare Worker + Durable Object），**不开端口**；中继不理解业务语义，只转发 device + channel 的请求/响应，且**绝不自动重放写请求**（断线返回 `outcome_unknown`，由上层 `idempotencyKey` 恢复）。

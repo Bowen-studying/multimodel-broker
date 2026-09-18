@@ -4,7 +4,7 @@
  * ephemeral loopback port and drives it with the official MCP client, exactly the
  * way a tunnelled cloud client would.
  *
- *   node scripts/mcp-http-roundtrip.mjs [--config <path>] [--profile chatgpt-pro-readonly]
+ *   node scripts/mcp-http-roundtrip.mjs [--config <path>] [--profile chatgpt-agent]
  *
  * The token is generated here and only ever printed as a fingerprint; the endpoint
  * URL is printed without it.
@@ -23,7 +23,7 @@ const flag = (name, fallback) => {
   return index >= 0 && argv[index + 1] ? argv[index + 1] : fallback;
 };
 const configPath = flag("--config", process.env.BROKER_CONFIG ?? path.join(repoRoot, "config", "providers.yaml"));
-const profile = flag("--profile", "chatgpt-pro-readonly");
+const profile = flag("--profile", "chatgpt-agent");
 const cli = path.join(repoRoot, "dist", "cli", "index.js");
 const ACCEPT = "application/json, text/event-stream";
 const token = randomBytes(24).toString("hex");

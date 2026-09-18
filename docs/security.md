@@ -91,7 +91,7 @@ trace or a log. `CodexProvider` drops `reasoning` stream items for the same reas
 - v0.1 excludes `danger-full-access`, git push, deploys and any write outside the workspace.
 - It is exposed through the `chatgpt-agent` profile only, and its annotations say what it is:
   `readOnlyHint: false`, `destructiveHint: true`, `openWorldHint: true`, `idempotentHint: false`.
-- `tests/unit/annotations.test.ts` asserts that every tool in `chatgpt-pro-readonly` still has
+- `tests/unit/annotations.test.ts` asserts that every tool in the read-only tool set still has
   `readOnlyHint: true`, so the mutating tool cannot leak into the read-only surface unnoticed.
 
 ## 4. Workspace and file safety

@@ -31,7 +31,7 @@ Command options
   --wait-ms <n>              Block up to n ms before returning a taskId (default 15000, max 45000)
   --level <level>            Trace level for "trace": summary | verbose | debug
   --limit <n>                Number of rows for "tasks" (default 20)
-  --profile <name>           MCP profile for "mcp-stdio"/"mcp-http": chatgpt-pro-readonly | chatgpt-agent | local-full
+  --profile <name>           MCP profile for "mcp-stdio"/"mcp-http": chatgpt-agent (default) | local-full
   --host <addr>              Bind address for "mcp-http" (default 127.0.0.1)
   --port <n>                 Port for "mcp-http" (default 8789, 0 picks a free one)
   --path <p>                 MCP path for "mcp-http" (default /mcp)

@@ -6,7 +6,7 @@ ngrok and a self-hosted relay were considered and rejected for now (see "Why" be
 
 ```text
 ChatGPT Pro
-   ├── https://broker.<domain>/mcp?token=<read token>   -> 127.0.0.1:8789  chatgpt-pro-readonly (7 tools)
+   ├── https://broker.<domain>/mcp?token=<read token>   -> 127.0.0.1:8789  chatgpt-agent, write-free config
    └── https://agent.<domain>/mcp?token=<agent token>   -> 127.0.0.1:8790  chatgpt-agent (8 tools, run_agent)
 
 one tunnel · one config.yml · two ingress rules · two systemd units for the brokers · one for cloudflared
@@ -30,7 +30,7 @@ its hostname never changes.
 
 - Both broker instances run as **systemd user services** (`Linger=yes`, so they survive a WSL
   restart) with `Restart=always`:
-  - `broker-readonly.service` -> 8789, `config/providers.yaml`, `chatgpt-pro-readonly`
+  - `broker-readonly.service` -> 8789, `config/providers.yaml` (no write-capable worker enabled), `chatgpt-agent`
   - `broker-agent.service` -> 8790, `config/providers.agent.yaml`, `chatgpt-agent`
   - Tokens are read from their 600 files at start (`~/.broker-m1-token`, `~/.broker-agent-token`);
     they are never copied into a unit file or the journal.

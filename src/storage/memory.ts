@@ -6,6 +6,7 @@ const copy = <T>(value: T): T => structuredClone(value);
 const clean = <T>(value: T): T => copy(redact(value));
 
 export class MemoryStore implements Store {
+  private readonly settings = new Map<string, string>();
   private readonly tasks = new Map<string, TaskRecord>();
   private readonly runs = new Map<string, RunRecord>();
   private readonly events = new Map<string, TraceEvent[]>();
@@ -54,6 +55,10 @@ export class MemoryStore implements Store {
   }
   async saveArtifacts(artifacts: ArtifactRecord[]): Promise<void> { for (const artifact of artifacts) this.artifacts.set(artifact.id, clean(artifact)); }
   async listArtifactsByRun(runId: string): Promise<ArtifactRecord[]> { return copy([...this.artifacts.values()].filter((a) => a.runId === runId)); }
+  async getSetting(key: string): Promise<string | undefined> { return this.settings.get(key); }
+  async setSetting(key: string, value: string): Promise<void> { this.settings.set(key, value); }
+  async deleteSetting(key: string): Promise<void> { this.settings.delete(key); }
+
   async markInterrupted(): Promise<number> {
     let count = 0;
     for (const task of this.tasks.values()) {

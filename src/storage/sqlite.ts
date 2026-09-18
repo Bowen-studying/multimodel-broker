@@ -186,6 +186,21 @@ export class SqliteStore implements Store {
     return this.all<Record<string, unknown>>("SELECT * FROM tasks WHERE status = 'interrupted' ORDER BY created_at, id").map((row) => this.toTask(row));
   }
 
+  async getSetting(key: string): Promise<string | undefined> {
+    const row = this.get<{ value?: string }>("SELECT value FROM settings WHERE key = ?", key);
+    return row?.value;
+  }
+
+  async setSetting(key: string, value: string): Promise<void> {
+    this.handle()
+      .prepare("INSERT INTO settings (key, value, updated_at) VALUES (?, ?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at")
+      .run(key, value, new Date().toISOString());
+  }
+
+  async deleteSetting(key: string): Promise<void> {
+    this.handle().prepare("DELETE FROM settings WHERE key = ?").run(key);
+  }
+
   async markInterrupted(): Promise<number> {
     const before = this.get<{ count: number }>("SELECT COUNT(*) AS count FROM tasks WHERE status IN ('queued','running')")?.count ?? 0;
     if (before) {

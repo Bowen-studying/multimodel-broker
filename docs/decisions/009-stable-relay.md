@@ -1,6 +1,8 @@
 # 009 - Stable relay as the network layer
 
 - Status: accepted (2026-09-17)
+- Superseded in part by: **010** (the profile column below is now `chatgpt-agent` on both sides -
+  the read-only side stays read-only by config, not by profile name)
 - Supersedes: nothing (adds a layer); refines the "stable endpoint" decision in
   `docs/stable-endpoint.md`, which remains the fallback path.
 

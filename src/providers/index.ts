@@ -73,7 +73,7 @@ export function buildProvider(id: string, config: ProviderConfig): WorkerProvide
       return new CodexProvider(id, config);
     case "claude-code":
       // Local Claude Code CLI on the DeepSeek backend, run headlessly. Write-capable: it is only
-      // reachable through its own tool (`run_claude_code`), never through the read-only ones.
+      // reachable through `run_agent(worker="claude-code")`, never through the read-only ones.
       return new ClaudeCodeProvider(id, config);
     default:
       throw new BrokerError("CONFIG_ERROR", `provider ${id}: unknown adapter`);

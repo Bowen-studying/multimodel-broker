@@ -20,7 +20,8 @@ permission model are not touched. Decision record: `docs/decisions/009-stable-re
              readonly channel      agent channel
                    |                    |
                  :8789                :8790
-       chatgpt-pro-readonly       chatgpt-agent
+       chatgpt-agent              chatgpt-agent
+       (write-free config)        (write-capable)
                    |                    |
              DeepSeek/...             Codex
                                        |

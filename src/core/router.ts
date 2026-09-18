@@ -7,7 +7,7 @@ export class Router {
 
   /**
    * Automatic routing may only land on a worker that the read-only tools may honestly run, i.e. not
-   * on a local agent (those are reached explicitly through run_agent / run_claude_code). The
+   * on a local agent (those are reached explicitly through run_agent, with its worker named). The
    * configured chain is still walked in order - a write-capable primary is skipped, not rewritten.
    */
   private selectable(id: string): boolean {
@@ -21,7 +21,7 @@ export class Router {
     return Boolean(provider?.enabled) && this.providers.available(id);
   }
   /**
-   * @param options.allowWriteCapable set by the mutating tools (run_agent / run_claude_code) for
+   * @param options.allowWriteCapable set by the mutating tool (run_agent) for
    * their own run. Everywhere else a write-capable adapter is refused, because those tools are
    * advertised as read-only and must stay true to that.
    */

@@ -53,25 +53,16 @@ export const TOOL_ANNOTATIONS = {
     idempotentHint: false,
   },
   run_agent: {
-    title: "Run Local Agent (writes to an allowlisted workspace)",
-    // Honest annotation: this is the one tool that changes files on disk. It
-    // drives a local Codex agent inside an allowlisted workspace, so it is
-    // mutating, potentially destructive and reaches outside the process.
-    // It must never be advertised through a read-only profile.
+    title: "Run Local Agent (writes files and runs commands)",
+    // Honest annotation: this is the one tool that changes files on disk. It drives whichever local
+    // agent the caller names (Codex, the Windows Codex build, or local Claude Code), so it is
+    // mutating, potentially destructive and reaches outside the process. Every write-capable worker
+    // is reachable ONLY here - never through a tool advertised as read-only.
     readOnlyHint: false,
     destructiveHint: true,
     openWorldHint: true,
     // Re-running writes again (and a repeated call is a new agent run), so it is
     // not idempotent unless the caller supplies an idempotencyKey.
-    idempotentHint: false,
-  },
-  run_claude_code: {
-    title: "Run Claude Code (writes to a working directory)",
-    // Honest annotation, same reasoning as run_agent: this drives a local agent that edits files and
-    // runs commands, so it is mutating and potentially destructive. Never advertise it read-only.
-    readOnlyHint: false,
-    destructiveHint: true,
-    openWorldHint: true,
     idempotentHint: false,
   },
   delegate: {

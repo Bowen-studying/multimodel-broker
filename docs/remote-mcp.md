@@ -13,7 +13,7 @@ exists once and is reachable both ways. Adding the HTTP transport changed nothin
 
 ```bash
 export BROKER_HTTP_TOKEN="$(openssl rand -hex 24)"   # the endpoint's shared secret
-node dist/cli/index.js mcp-http --profile chatgpt-pro-readonly --port 8789
+node dist/cli/index.js mcp-http --profile chatgpt-agent --port 8789
 ```
 
 Defaults and flags:
@@ -23,7 +23,7 @@ Defaults and flags:
 | `--host` | `127.0.0.1` | Bind address. Loopback keeps the tunnel/relay local; anything else is a warning-worthy decision. |
 | `--port` | `8789` | `0` picks a free port (used by tests). |
 | `--path` | `/mcp` | MCP endpoint path. `/healthz` is always served. |
-| `--profile` | `chatgpt-pro-readonly` | Tool set. This profile has no `cancel_task`. |
+| `--profile` | `chatgpt-agent` | Tool set: the seven read-only tools plus `run_agent` (no `cancel_task`). An instance stays read-only in practice by not enabling any write-capable worker in its config. |
 | `--token-env` | `BROKER_HTTP_TOKEN` | Name of the variable holding the secret. Empty + no `--allow-anonymous` = refuse to start (exit 2). |
 | `--max-rpm` | `60` | Sliding-window request budget for the MCP path; over budget = `429` + `Retry-After`. |
 | `--max-concurrent` | `4` | Requests handled at once; over = `429` (`busy`). |
@@ -134,7 +134,7 @@ notes. A real provider has not been reached from ChatGPT yet.
 - The endpoint URL carries the secret: treat it as a credential, never commit it, never
   print it in full, rotate it if it leaks.
 - Public exposure = exposing **money**: every `run_worker`/`delegate` spends provider
-  quota. Keep the read-only profile, keep the request budget small, and stop the listener
+  quota. Keep the write-capable workers disabled in that instance's config, keep the request budget small, and stop the listener
   when you are not testing.
 - A tunnel or relay sees MCP requests in plaintext (they terminate TLS). Do not send
   private papers, code or personal data through a path you do not control; use mock or

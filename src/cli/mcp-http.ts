@@ -69,7 +69,7 @@ export async function runMcpHttp(options: McpHttpCliOptions = {}): Promise<numbe
       "multimodel-broker - MCP over HTTP",
       `  endpoint : ${handle.url}`,
       `  health   : http://${handle.host}:${handle.port}/healthz`,
-      `  profile  : ${options.profile ?? "chatgpt-pro-readonly"} (${handle.tools.length} tools)`,
+      `  profile  : ${options.profile ?? "chatgpt-agent"} (${handle.tools.length} tools)`,
       `  responses: ${options.sse === true ? "SSE stream" : "JSON"}`,
       `  guards   : ${options.maxRequestsPerMinute ?? 60} req/min, ${options.maxConcurrentRequests ?? 4} concurrent`,
       `  auth     : ${token ? `token from $${tokenEnv} (fingerprint ${handle.tokenFingerprint})` : "DISABLED (--allow-anonymous)"}`,

@@ -35,7 +35,7 @@ adjust the path to this checkout:
         "C:/projects/multimodel-broker/dist/cli/index.js",
         "mcp-stdio",
         "--profile",
-        "chatgpt-pro-readonly"
+        "chatgpt-agent"
       ]
     }
   }
@@ -47,7 +47,7 @@ Notes:
 - `features.files/shell/processes` are switched **off**: the POC only needs the broker's
   own tools, and a bridge should not additionally expose the local filesystem to a cloud
   model.
-- The profile decides the tool set. `chatgpt-pro-readonly` exposes
+- The profile decides the tool set. `chatgpt-agent` exposes
   `ping, list_workers, run_worker, delegate, delegate_batch, get_task, get_trace`.
   `cancel_task` exists only in `local-full`.
 - The bridge spawns `dist/cli/index.js`, so run `npm run build` after every change.

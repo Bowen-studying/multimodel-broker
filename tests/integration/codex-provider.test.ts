@@ -273,7 +273,7 @@ describe("CodexProvider", () => {
 
     // No traceLevel on purpose: a cloud client does not send one, and the write audit
     // (file_change / command_execution) must not depend on the caller asking for verbose.
-    const result = await harness.broker.runAgent({ task: "verify", workspace: "scratch" });
+    const result = await harness.broker.runAgent({ worker: "codex", task: "verify", workspace: "scratch" });
     expect(result).toMatchObject({ status: "completed" });
     const trace = JSON.stringify(await harness.broker.getTrace(result.traceId!, "debug"));
     expect(trace).toContain("tool.event");

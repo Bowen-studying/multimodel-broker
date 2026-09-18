@@ -116,12 +116,15 @@ describe("mcp http server", () => {
     expect((envelope.data as { result: { answer: string } }).result.answer).toContain("Mock answer: HELLO");
   });
 
-  it("exposes only the read-only profile when that profile is selected", async () => {
-    const handle = await startServer({ profile: "chatgpt-pro-readonly" });
+  it("exposes the local profile's tool set when that profile is selected", async () => {
+    const handle = await startServer({ profile: "local-full" });
     const client = await connect(handle, TOKEN);
     const { tools } = await client.listTools();
-    expect(tools.map((tool) => tool.name)).not.toContain("cancel_task");
-    expect(tools.map((tool) => tool.name)).toContain("delegate_batch");
+    const names = tools.map((tool) => tool.name);
+    expect(names).toContain("delegate_batch");
+    expect(names).toContain("cancel_task");
+    // The write tool belongs to the agent profile only.
+    expect(names).not.toContain("run_agent");
   });
 
   it("accepts the shared secret from a header or from the query string", async () => {
@@ -253,19 +256,20 @@ describe("mcp http server", () => {
     await response.text();
   });
 
-  it("exposes run_agent only in the agent profile, with mutating annotations", async () => {
+  it("exposes the single write tool only in the agent profile, with mutating annotations", async () => {
     // C4 gate: the cloud client must SEE the writing tool as mutating, not slip past a
     // read-only label. This asserts the wire-level tool list, not the source constants.
-    const readonly = await connect(await startServer({ profile: "chatgpt-pro-readonly" }));
-    const readonlyTools = await readonly.listTools();
-    expect(readonlyTools.tools.map((tool) => tool.name)).not.toContain("run_agent");
+    const local = await connect(await startServer({ profile: "local-full" }));
+    const localTools = await local.listTools();
+    expect(localTools.tools.map((tool) => tool.name)).not.toContain("run_agent");
 
     const agent = await connect(await startServer({ profile: "chatgpt-agent" }));
     const agentTools = await agent.listTools();
     const names = agentTools.tools.map((tool) => tool.name);
     expect(names).toContain("run_agent");
-    expect(names).toContain("run_claude_code");
     expect(names).toContain("run_worker");
+    // One write tool, and it names every worker it can drive.
+    expect(names).not.toContain("run_claude_code");
 
     const runAgent = agentTools.tools.find((tool) => tool.name === "run_agent")!;
     expect(runAgent.annotations).toMatchObject({
@@ -274,23 +278,16 @@ describe("mcp http server", () => {
       openWorldHint: true,
       idempotentHint: false,
     });
-    // The task text has to say what it does, because that is what a calling model reads.
+    // The text has to say what it does and which workers it reaches, because that is what a calling
+    // model reads - including that a claude-code workspace is a starting directory, not a sandbox.
     expect(runAgent.description ?? "").toMatch(/WRITE|side effects/i);
+    const workerField = JSON.stringify(runAgent.inputSchema ?? {});
+    for (const worker of ["codex", "codex-win", "claude-code"]) {
+      expect(workerField).toContain(worker);
+    }
 
-    // run_claude_code is the second mutating tool and must be just as honest about it.
-    expect(names).toContain("run_claude_code");
-    const runClaudeCode = agentTools.tools.find((tool) => tool.name === "run_claude_code")!;
-    expect(runClaudeCode.annotations).toMatchObject({
-      readOnlyHint: false,
-      destructiveHint: true,
-      openWorldHint: true,
-      idempotentHint: false,
-    });
-    expect(runClaudeCode.description ?? "").toMatch(/WRITE|side effects/i);
-
-    // Everything else in the agent profile stays read-only: exactly two tools may mutate.
-    const mutating = new Set(["run_agent", "run_claude_code"]);
-    for (const tool of agentTools.tools.filter((entry) => !mutating.has(entry.name))) {
+    // Everything else in the agent profile stays read-only: exactly one tool may mutate.
+    for (const tool of agentTools.tools.filter((entry) => entry.name !== "run_agent")) {
       expect(tool.annotations?.readOnlyHint).toBe(true);
     }
   });

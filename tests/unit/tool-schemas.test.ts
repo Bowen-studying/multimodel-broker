@@ -25,10 +25,17 @@ describe("MCP tool schemas", () => {
     expect(RunWorkerSchema.parse({ worker: "mock", task: "hello", waitMs: 1000 }).waitMs).toBe(1000);
   });
 
-  it("pins run_agent to codex and rejects any other worker", () => {
-    expect(RunAgentSchema.parse({ task: "edit a file", workspace: "scratch" })).toEqual({ worker: "codex", task: "edit a file", workspace: "scratch" });
-    const other = RunAgentSchema.safeParse({ worker: "deepseek", task: "edit a file", workspace: "scratch" });
-    expect(other.success).toBe(false);
+  it("never invents a worker for run_agent, and accepts only write-capable ones", () => {
+    // Omitting `worker` is allowed (the broker reuses the choice you named before), but the schema
+    // injects no default: the harness - and therefore the model - is always the caller's choice.
+    const omitted = RunAgentSchema.parse({ task: "edit a file", workspace: "scratch" });
+    expect(omitted.worker).toBeUndefined();
+    for (const worker of ["codex", "codex-win", "claude-code"] as const) {
+      expect(RunAgentSchema.parse({ worker, task: "edit a file", workspace: "scratch" }).worker).toBe(worker);
+    }
+    for (const worker of ["deepseek", "glm", "mock", "claude-code-x"]) {
+      expect(RunAgentSchema.safeParse({ worker, task: "edit a file", workspace: "scratch" }).success).toBe(false);
+    }
   });
 
   it("rejects unknown fields instead of silently dropping them", () => {

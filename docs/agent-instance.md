@@ -6,7 +6,7 @@ instance is never switched to the agent profile: two connectors, two blast radii
 | | Read-only instance | Agent instance |
 |---|---|---|
 | Port | `8789` | `8790` |
-| Profile | `chatgpt-pro-readonly` (7 tools) | `chatgpt-agent` (9 tools, adds `run_agent` + `run_claude_code`) |
+| Profile | `local-full` (8 tools, adds `cancel_task`) | `chatgpt-agent` (8 tools, adds `run_agent`) |
 | Token | `~/.broker-m1-token` | `~/.broker-agent-token` |
 | Config | `config/providers.yaml` | `config/providers.agent.yaml` (see `providers.agent.example.yaml`) |
 | Database | `data/broker.sqlite` | `data/broker-agent.sqlite` |
@@ -54,27 +54,31 @@ bash ~/.broker-ops/broker-call.sh "$(cat ~/.broker-agent-connector-url | sed 's|
 ```
 
 Expected: one worker (`codex`, `healthy: true`), and `healthz` reporting `profile: chatgpt-agent`
-with 8 tools. A `run_agent` call with an unknown workspace must come back `PATH_NOT_ALLOWED`, and
+with 8 tools. A `run_agent` call that names no worker must come back `INVALID_INPUT`, one with an
+unknown workspace `PATH_NOT_ALLOWED`, and
 `runs` in `data/broker-agent.sqlite` must stay empty for rejected calls - a path rejection is not a
 provider call.
 
-## Two local harnesses, one connector (`run_agent` vs `run_claude_code`)
+## One write tool, several local harnesses (`run_agent` with `worker=…`)
 
-Both write for real, so both carry `readOnlyHint: false` and both are their own tool - a write
-capability is never folded into a read-only tool. They differ in which local agent does the work:
+Writing for real is a capability, so it lives in its own tool that carries `readOnlyHint: false` -
+never folded into a read-only one. Which local agent actually does the work is a `worker` argument,
+and it is required: the broker never picks a harness (or a model) for the caller.
 
-| | `run_agent` | `run_claude_code` |
-|---|---|---|
-| Runtime | local Codex (`codex`, `codex-win`) | local Claude Code CLI on DeepSeek |
-| Cost | Codex subscription quota | ~$0.0002-0.005 per run, measured |
-| Answers | Codex's reply + trace events | reply + audit line (files, commands, cost) |
-| Speed | minutes | seconds for a small edit (3-4 s measured) |
+| `worker` | Runtime | Cost | Answers | Speed |
+|---|---|---|---|---|
+| `codex` | local Codex | Codex subscription quota | Codex's reply + trace events | minutes |
+| `codex-win` | the Windows Codex build | Codex subscription quota | same, with Windows paths | minutes |
+| `claude-code` | the local Claude Code CLI on whatever backend its operator configured | billed per token to that backend | reply + audit line (files, commands, cost) | seconds for a small edit |
+
+The choice is sticky: naming a worker remembers it for that tool (later calls may omit it) and naming
+another one switches. See ADR 010.
 
 The router refuses write-capable adapters (`WRITE_CAPABLE_ADAPTERS` in `src/core/types.ts`), so
 `run_worker` and `delegate` can never be a back door into either one - naming `codex` or
 `claude-code` there comes back as a failed task that points at the right tool.
 
-### Verified: run_claude_code → disk (Track 2, 2026-09-17)
+### Verified: `run_agent(worker="claude-code")` → disk (Track 2, 2026-09-17)
 
 Driven over MCP against the real instance, then checked on disk (the only evidence that counts):
 
@@ -82,7 +86,7 @@ Driven over MCP against the real instance, then checked on disk (the only eviden
 marker : TRACK2_ACCEPT_fbf82d09   (unique random marker)
 wall   : 3s
 envelope: ok=True status=completed
-worker  : claude-code | reason: Explicit worker requested by caller
+worker  : claude-code | reason: Explicit worker requested by caller   # then run_agent(worker="claude-code")
 result  : status=completed model=deepseek-flash sessionId=bfb786ea-…
 usage   : {"inputTokens": 292, "outputTokens": 120, "cacheHitTokens": 24448, "cost": 0.000378}
 evidence: [{"type":"file_touched","content":"track2-acceptance.txt","source":"Write"}]

@@ -13,7 +13,7 @@
         "C:/projects/multimodel-broker/dist/cli/index.js",
         "mcp-stdio",
         "--profile",
-        "chatgpt-pro-readonly"
+        "chatgpt-agent"
       ]
     }
   }

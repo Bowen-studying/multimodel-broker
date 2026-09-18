@@ -44,4 +44,4 @@ storage:
   sqlitePath: data/broker-poc.sqlite
 
 server:
-  defaultProfile: chatgpt-pro-readonly
+  defaultProfile: chatgpt-agent

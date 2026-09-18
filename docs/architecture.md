@@ -16,7 +16,7 @@
 │   tools.ts       registers tools; each handler calls ONLY the Broker │
 │   schemas.ts     Zod input schemas = the contract a model reads      │
 │   annotations.ts the read-only table (docs/security.md)              │
-│   profiles.ts    chatgpt-pro-readonly | local-full                   │
+│   profiles.ts    chatgpt-agent | local-full                          │
 └──────────────────────────────────────────────────────────────────────┘
                                                  ▼
 ┌──────────────────────────────────────────────────────────────────────┐

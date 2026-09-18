@@ -3,6 +3,10 @@
 Status: accepted (2026-09-17). Extends 001 (core separation) and 007 (supervisor layer). Scopes
 the first agentic write path: `run_agent` (C1-C3 of the Codex write plan).
 
+> Superseded in part by **010**: `run_claude_code` was merged into `run_agent` as
+> `worker: "claude-code"`, so the write surface is one tool instead of two. The rule this ADR
+> established - a write capability is never folded into a read-only tool - is unchanged.
+
 ## Context
 
 Everything the broker exposed so far is read/compute: it spends model quota and returns text, and

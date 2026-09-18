@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { BrokerError, toBrokerError } from "./errors.js";
-import type { BrokerConfig, Clock, Logger, Store, TaskRecord, TaskSubmission, ToolEnvelope, TraceLevel, WorkerInfo, WorkerRequest, WorkerResult, RouterDecision } from "./types.js";
+import { WRITE_CAPABLE_ADAPTERS, type BrokerConfig, type Clock, type Logger, type Store, type TaskRecord, type TaskSubmission, type ToolEnvelope, type TraceLevel, type WorkerInfo, type WorkerRequest, type WorkerResult, type RouterDecision } from "./types.js";
 import { ProviderRegistry } from "../providers/provider.js";
 import { WorkspaceGuard } from "../security/paths.js";
 import { redact } from "../security/redaction.js";
@@ -56,11 +56,40 @@ export class Broker {
    */
   async listWorkers(): Promise<WorkerInfo[]> {
     await this.options.providers.refreshAll();
-    return this.options.providers.workerInfo().map((worker) => ({ ...worker, maxConcurrency: this.options.config.concurrency[worker.id] ?? worker.maxConcurrency }));
+    const { store } = this.options;
+    // Surface the sticky choices so a caller can see what "no worker given" would do, and switch
+    // deliberately by naming a different one.
+    const remembered: Array<["run_worker" | "run_agent", string]> = [];
+    for (const tool of ["run_worker", "run_agent"] as const) {
+      const worker = await store.getSetting(`default.worker.${tool}`);
+      if (worker) remembered.push([tool, worker]);
+    }
+    return this.options.providers.workerInfo().map((worker) => {
+      const defaultFor = remembered.filter(([, id]) => id === worker.id).map(([tool]) => tool);
+      return {
+        ...worker,
+        maxConcurrency: this.options.config.concurrency[worker.id] ?? worker.maxConcurrency,
+        ...(defaultFor.length > 0 ? { defaultFor } : {}),
+      };
+    });
   }
-  runWorker(submission: TaskSubmission): Promise<ToolEnvelope<WorkerData>> {
-    if (!submission.worker) throw new BrokerError("INVALID_INPUT", "runWorker requires an explicit worker");
-    return this.submit("run_worker", submission);
+  /**
+   * Run one API worker. Naming a `worker` is an explicit choice and is REMEMBERED (so the next call
+   * may omit it and still use the same one); omitting it reuses that remembered choice, and there is
+   * no built-in default - with nothing remembered the caller has to name a worker.
+   */
+  async runWorker(submission: TaskSubmission): Promise<ToolEnvelope<WorkerData>> {
+    const resolved = await this.resolveChoice("run_worker", submission, {
+      // A write-capable worker is refused by the router for this tool; do not remember one.
+      rememberable: (worker) => {
+        const adapter = this.options.config.providers[worker]?.adapter;
+        return !adapter || !WRITE_CAPABLE_ADAPTERS.has(adapter);
+      },
+    });
+    if (!resolved.worker) {
+      throw new BrokerError("INVALID_INPUT", "run_worker requires an explicit worker: name one, or call it once with a worker to make that choice sticky");
+    }
+    return this.submit("run_worker", resolved);
   }
   delegate(submission: TaskSubmission): Promise<ToolEnvelope<WorkerData>> { return this.submit("delegate", submission); }
   runWorkerLong(submission: TaskSubmission): Promise<ToolEnvelope<WorkerData>> { return this.runWorker(submission); }
@@ -81,45 +110,89 @@ export class Broker {
    * `codex-win` (the Windows app's build). A caller cannot invent a worker id, and a disabled
    * provider is refused here instead of failing halfway through a run.
    */
-  private assertLocalAgentWorker(worker: string, adapter: "codex-sdk" | "claude-code" = "codex-sdk"): void {
+  /**
+   * `run_agent` is the only tool that can change files, so its worker gate is what decides which
+   * local runtimes a caller may reach: any enabled worker whose adapter is write-capable
+   * (codex-sdk, claude-code) qualifies, and nothing else does - the API workers must stay
+   * unreachable here, and a caller cannot invent a worker id.
+   */
+  private assertLocalAgentWorker(worker: string): void {
     const provider = this.options.config.providers[worker];
-    if (provider?.adapter !== adapter || provider.enabled === false) {
-      const what = adapter === "codex-sdk"
-        ? 'local-agent worker (adapter "codex-sdk")'
-        : 'local Claude Code worker (adapter "claude-code")';
-      throw new BrokerError("INVALID_INPUT", `this tool needs an enabled ${what}; received "${worker}"`);
+    const adapter = provider?.adapter;
+    if (!adapter || !WRITE_CAPABLE_ADAPTERS.has(adapter) || provider?.enabled === false) {
+      throw new BrokerError(
+        "INVALID_INPUT",
+        `run_agent needs an enabled write-capable worker (${[...WRITE_CAPABLE_ADAPTERS].join(", ")}); received "${worker}"`,
+      );
     }
   }
 
-  runAgent(submission: TaskSubmission): Promise<ToolEnvelope<WorkerData>> {
-    const worker = submission.worker ?? "codex";
-    this.assertLocalAgentWorker(worker);
-    if (!submission.workspace) {
-      throw new BrokerError("INVALID_INPUT", "run_agent requires a workspace: a writing agent may only act inside an allowlisted directory");
+  async runAgent(submission: TaskSubmission): Promise<ToolEnvelope<WorkerData>> {
+    // Which harness (and therefore which model) runs is the caller's decision; once made it sticks,
+    // so a follow-up call may omit it. Nothing is defaulted by the broker itself.
+    const resolved = await this.resolveChoice("run_agent", submission, { validate: (worker) => this.assertLocalAgentWorker(worker) });
+    const worker = resolved.worker;
+    if (!worker) {
+      throw new BrokerError(
+        "INVALID_INPUT",
+        "run_agent requires a worker: name the harness to run (codex | codex-win | claude-code). Once you name one, later calls may omit it.",
+      );
     }
-    return this.submit("run_agent", { ...submission, worker });
+    this.assertLocalAgentWorker(worker);
+    if (!resolved.workspace) {
+      throw new BrokerError(
+        "INVALID_INPUT",
+        "run_agent requires a workspace: a write-capable agent has to start somewhere (and for the Codex workers it is also the sandbox boundary)",
+      );
+    }
+    return this.submit("run_agent", { ...resolved, worker });
   }
 
   /**
-   * Run the local Claude Code CLI (DeepSeek backend) so a remote caller can delegate real file
-   * edits and commands. Same posture as run_agent: a working directory is mandatory, the caller
-   * cannot invent a worker id, and a disabled provider is refused up front (never half way through
-   * a run). Unlike run_agent it is a different harness - Claude Code, not Codex - which is the
-   * point: two independent local agents behind one connector.
+   * Sticky choice, with an explicit way out.
+   *
+   * - `worker` given: it becomes the remembered worker for this tool, and shows up in list_workers.
+   * - `worker` omitted: the remembered one is used (the request is marked so the trace says so).
+   * - `model` given: remembered per worker, and applied when a later call omits it.
+   * - `model: "auto"`: forgets that override, so the worker's own configured model applies again.
+   *
+   * The preference lives in this instance's own store (its own database), so instances - and
+   * operators - never share a choice.
    */
-  runClaudeCode(submission: TaskSubmission): Promise<ToolEnvelope<WorkerData>> {
-    const worker = submission.worker ?? "claude-code";
-    this.assertLocalAgentWorker(worker, "claude-code");
-    if (!submission.workspace) {
-      throw new BrokerError(
-        "INVALID_INPUT",
-        "run_claude_code requires a workspace: give the working directory the agent should start in",
-      );
+  private async resolveChoice(
+    tool: "run_worker" | "run_agent",
+    submission: TaskSubmission,
+    opts: { validate?: (worker: string) => void; rememberable?: (worker: string) => boolean } = {},
+  ): Promise<TaskSubmission & { remembered?: boolean }> {
+    const { store } = this.options;
+    const workerKey = `default.worker.${tool}`;
+    if (submission.worker) {
+      // Validate BEFORE remembering: a refused worker must never become the sticky choice, or the
+      // next call that omits `worker` would inherit an unusable one.
+      opts.validate?.(submission.worker);
+      if (opts.rememberable?.(submission.worker) === false) return submission;
+      await store.setSetting(workerKey, submission.worker);
+      const modelKey = `default.model.${submission.worker}`;
+      if (submission.model === "auto") await store.deleteSetting(modelKey);
+      else if (submission.model) await store.setSetting(modelKey, submission.model);
+      return submission;
     }
-    return this.submit("run_claude_code", { ...submission, worker });
+    const remembered = await store.getSetting(workerKey);
+    if (!remembered) return submission;
+    try {
+      opts.validate?.(remembered);
+    } catch {
+      // A remembered choice that no longer works (provider disabled since, config changed) is
+      // forgotten rather than re-thrown, so the caller gets the plain "name a worker" error.
+      await store.deleteSetting(workerKey);
+      return submission;
+    }
+    const rememberedModel = submission.model === undefined ? await store.getSetting(`default.model.${remembered}`) : undefined;
+    return { ...submission, worker: remembered, model: submission.model ?? rememberedModel, remembered: true };
   }
 
-  private async submit(kind: "run_worker" | "run_agent" | "run_claude_code" | "delegate" | "batch_child", submission: TaskSubmission, parentId?: string): Promise<ToolEnvelope<WorkerData>> {
+
+  private async submit(kind: "run_worker" | "run_agent" | "run_claude_code" | "delegate" | "batch_child", submission: TaskSubmission & { remembered?: boolean }, parentId?: string): Promise<ToolEnvelope<WorkerData>> {
     const request = this.policy.validate(submission);
     const { taskManager, store } = this.options;
     const { task, reused } = await taskManager.findOrCreateTask(kind, request, request.idempotencyKey);
@@ -147,7 +220,7 @@ export class Broker {
       error: task.errorJson ? JSON.parse(task.errorJson) as ToolEnvelope<T>["error"] : undefined });
   }
 
-  private async execute(task: TaskRecord, request: TaskSubmission): Promise<void> {
+  private async execute(task: TaskRecord, request: TaskSubmission & { remembered?: boolean }): Promise<void> {
     const { taskManager, store, traceStore, providers, scheduler, config, logger } = this.options;
     let route: RouterDecision | undefined;
     try {
@@ -156,9 +229,15 @@ export class Broker {
       // Only the mutating tools may land on a local agent; the read-only ones must not (see
       // WRITE_CAPABLE_ADAPTERS). The task kind records which tool asked, so this cannot be spoofed.
       route = this.router.route(request, {
+        // `run_claude_code` is legacy: merged into run_agent, but stored rows may still carry it.
         allowWriteCapable: task.kind === "run_agent" || task.kind === "run_claude_code",
       });
       await traceStore.emit(task.traceId, "route.selected", { ...route }, { taskId: task.id });
+      if (request.remembered) {
+        // Never silent: the trace records that this run reused a remembered choice rather than a
+        // fresh instruction from the caller.
+        await traceStore.emit(task.traceId, "choice.remembered", { tool: task.kind, worker: route.worker, model: request.model ?? null }, { taskId: task.id });
+      }
       const data: WorkerData = { selectedWorker: route.worker, routeReason: route.reason, route };
       await taskManager.setStatus(task.id, "queued", { resultJson: JSON.stringify(redact(data)) });
       let resolvedFiles: string[] | undefined;
@@ -180,12 +259,15 @@ export class Broker {
         if (signal.aborted) cancel();
         const timer = setTimeout(() => controller.abort(new BrokerError("TIMEOUT", "Worker deadline exceeded", { retryable: false })), timeoutMs);
         let open = true;
-        const workerRequest: WorkerRequest = { taskId: task.id, runId, task: request.task, context: request.context, workspace, files: request.files, resolvedFiles, model: entry.config.model, timeoutMs, traceLevel: request.traceLevel ?? "summary",
+        // A caller-supplied model wins over the configured one; `auto` means "use the configured
+        // model". Without this the documented per-run override never left the broker.
+        const effectiveModel = request.model && request.model !== "auto" ? request.model : entry.config.model;
+        const workerRequest: WorkerRequest = { taskId: task.id, runId, task: request.task, context: request.context, workspace, files: request.files, resolvedFiles, model: effectiveModel, timeoutMs, traceLevel: request.traceLevel ?? "summary",
           emit: (type, payload) => { if (open) void traceStore.emit(task.traceId, type, payload, { taskId: task.id, runId }).catch((error: unknown) => logger.error("Unable to persist provider trace", { error })); },
         };
         let result: WorkerResult;
         try {
-          await traceStore.emit(task.traceId, "run.started", { provider: route!.worker, model: entry.config.model }, { taskId: task.id, runId });
+          await traceStore.emit(task.traceId, "run.started", { provider: route!.worker, model: workerRequest.model }, { taskId: task.id, runId });
           await traceStore.emit(task.traceId, "prompt.sent", { task: request.task, context: request.context }, { taskId: task.id, runId });
           result = await this.withRetries(() => entry.provider.run(workerRequest, controller.signal), controller.signal, task, runId);
           result = redact({ ...result, taskId: task.id, runId, provider: route!.worker, traceId: task.traceId });

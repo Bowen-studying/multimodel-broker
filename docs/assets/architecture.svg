@@ -145,14 +145,14 @@
 
   <rect x="932" y="354" width="308" height="54" rx="6" fill="#1d1315" stroke="#f85149"/>
   <text x="944" y="376" class="t box-label-m">本地 Claude Code</text>
-  <text x="944" y="396" class="m box-sub">run_claude_code · DeepSeek 后端</text>
+  <text x="944" y="396" class="m box-sub">run_agent(worker=claude-code) · 你配置的后端</text>
 
-  <text x="932" y="432" class="t note">写型 worker 只能经 run_agent / run_claude_code 到达</text>
+  <text x="932" y="432" class="t note">写型 worker 只能经 run_agent 到达</text>
 
   <!-- ============ legend ============ -->
   <rect x="24" y="516" width="14" height="14" rx="3" fill="#3fb950"/>
   <text x="46" y="527" class="m legend">读工具 → 只读 worker：run_worker / delegate / delegate_batch</text>
 
   <rect x="24" y="544" width="14" height="14" rx="3" fill="#f85149"/>
-  <text x="46" y="555" class="m legend">写工具 → 写型 worker：run_agent / run_claude_code</text>
+  <text x="46" y="555" class="m legend">写工具 → 写型 worker：run_agent(worker=codex|codex-win|claude-code)</text>
 </svg>

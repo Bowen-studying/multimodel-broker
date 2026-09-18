@@ -68,6 +68,11 @@ export interface WorkerInfo {
   capabilities: string[];
   maxConcurrency: number;
   reasonUnavailable?: string;
+  /**
+   * Tools whose sticky choice currently points at this worker - i.e. calling that tool without a
+   * `worker` will run this one. Empty/absent means no remembered choice yet.
+   */
+  defaultFor?: Array<"run_worker" | "run_agent">;
 }
 
 export interface ProviderHealth {
@@ -140,7 +145,7 @@ export interface WorkerResult {
  * Defined in core (not in the MCP interface) so the config schema and the profile registry cannot
  * drift: adding a profile here is the single edit that makes it configurable and registrable.
  */
-export const PROFILE_NAMES = ["chatgpt-pro-readonly", "chatgpt-agent", "local-full"] as const;
+export const PROFILE_NAMES = ["chatgpt-agent", "local-full"] as const;
 export type ProfileName = (typeof PROFILE_NAMES)[number];
 
 export interface WorkerProvider {
@@ -165,6 +170,10 @@ export interface WorkerProvider {
 export interface TaskRecord {
   id: string;
   parentId?: string;
+  /**
+   * Which tool created the task. `run_claude_code` is legacy: that tool was merged into
+   * `run_agent` (`worker: "claude-code"`), so only already-stored rows still carry it.
+   */
   kind: "run_worker" | "run_agent" | "run_claude_code" | "delegate" | "delegate_batch" | "batch_child";
   status: TaskStatus;
   createdAt: string;
@@ -206,6 +215,8 @@ export type TraceEventType =
   | "task.status_changed"
   | "task.completed"
   | "route.selected"
+  /** A run reused the worker/model the caller chose earlier (sticky choice), rather than a fresh instruction. */
+  | "choice.remembered"
   | "run.started"
   | "run.finished"
   | "prompt.sent"
@@ -295,14 +306,14 @@ export interface RouterDecision {
  *
  * Such a worker must never be reachable through a tool that is advertised as read-only: the router
  * refuses to select it and `run_worker` refuses to accept it, so the only doors are the dedicated
- * mutating tools (`run_agent`, `run_claude_code`) with honest annotations. See
+ * mutating tool (`run_agent`) with honest annotations. See
  * src/interfaces/mcp/annotations.ts - that rule is the reason this list exists at all.
  */
 export const WRITE_CAPABLE_ADAPTERS: ReadonlySet<string> = new Set(["codex-sdk", "claude-code"]);
 
 /** The mutating tool a caller should use instead of the read-only ones. */
-export function mutatingToolFor(adapter: string): string {
-  return adapter === "claude-code" ? "run_claude_code" : "run_agent";
+export function mutatingToolFor(_adapter: string): string {
+  return "run_agent";
 }
 
 export interface ProviderConfig {
@@ -413,6 +424,13 @@ export interface Store {
   listEvents(traceId: string, level: TraceLevel): Promise<TraceEvent[]>;
   saveArtifacts(artifacts: ArtifactRecord[]): Promise<void>;
   listArtifactsByRun(runId: string): Promise<ArtifactRecord[]>;
+  /**
+   * Small persistent key/value store for operator preferences (e.g. the worker the caller chose
+   * last time). Values are plain strings; keys are namespaced by the caller.
+   */
+  getSetting(key: string): Promise<string | undefined>;
+  setSetting(key: string, value: string): Promise<void>;
+  deleteSetting(key: string): Promise<void>;
   /** Marks queued/running tasks as interrupted after a broker restart. */
   markInterrupted(): Promise<number>;
   /** Tasks that were marked interrupted (used to emit one recovery event each). */

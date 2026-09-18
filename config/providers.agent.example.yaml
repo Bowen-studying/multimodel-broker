@@ -53,12 +53,13 @@ providers:
   claude-code:
     # Optional second local agent: the Claude Code CLI run headlessly on a cheaper OpenAI-compatible
     # backend (DeepSeek by default). It edits files and runs commands, so it is reachable ONLY through
-    # run_claude_code - the router refuses write-capable adapters, keeping run_worker honest.
+    # run_agent(worker="claude-code") - the router refuses write-capable adapters, keeping run_worker honest.
     # `runnerPath` must point at integrations/claude-code/runner.mjs; the runner
     # reads the backend url/token from `envScript` at run time and never takes a secret on argv.
     enabled: false
     adapter: claude-code
-    model: deepseek-flash
+    # You choose the backend and the model; nothing is defaulted for you.
+    model: ${CLAUDE_CODE_MODEL}
     authMode: api-key
     maxConcurrency: 3               # runs in the same directory are serialized by the provider
     defaultTimeoutMs: 1800000       # long edits are expected; poll with get_task
@@ -74,8 +75,8 @@ providers:
   deepseek:
     enabled: true
     adapter: openai-compatible
-    baseUrl: https://api.deepseek.com
-    model: deepseek-flash
+    baseUrl: ${DEEPSEEK_BASE_URL}
+    model: ${DEEPSEEK_MODEL}
     apiKeyEnv: DEEPSEEK_API_KEY
     authMode: api-key
     maxConcurrency: 4
@@ -84,8 +85,8 @@ providers:
   glm:
     enabled: true
     adapter: openai-compatible
-    baseUrl: https://open.bigmodel.cn/api/paas/v4
-    model: glm-4-flash
+    baseUrl: ${GLM_BASE_URL}
+    model: ${GLM_MODEL}
     apiKeyEnv: GLM_API_KEY
     authMode: api-key
     maxConcurrency: 4
@@ -105,7 +106,7 @@ providers:
 routing:
   # Plain tasks land on a cheap API worker. Local agents are intentionally absent from every chain:
   # the router refuses write-capable adapters, so a delegated task can never turn into a silent file
-  # modification - the caller names run_agent / run_claude_code instead.
+  # modification - the caller names run_agent (with an explicit worker) instead.
   coding: { primary: deepseek, fallback: [glm] }
   long_context: { primary: deepseek, fallback: [glm] }
   low_cost: { primary: deepseek, fallback: [glm, mock] }

@@ -37,7 +37,7 @@ const schema = z.object({
   workspaces: z.record(z.string().regex(/^(?!.*\.\.)[A-Za-z0-9_-]+$/), z.string().min(1)).default({}),
   trace: z.object({ storePrompts: z.boolean().default(false), retentionDays: positive.default(30) }).strict().prefault({}),
   storage: z.object({ driver: z.enum(["memory", "sqlite"]).default("memory"), sqlitePath: z.string().min(1).default("data/broker.sqlite") }).strict().prefault({}),
-  server: z.object({ defaultProfile: z.enum(PROFILE_NAMES).default("chatgpt-pro-readonly"), allowAnyWorkspace: z.boolean().default(false) }).strict().prefault({}),
+  server: z.object({ defaultProfile: z.enum(PROFILE_NAMES).default("chatgpt-agent"), allowAnyWorkspace: z.boolean().default(false) }).strict().prefault({}),
 }).strict();
 
 export async function loadConfig(options: { path?: string; env?: NodeJS.ProcessEnv } = {}): Promise<BrokerConfig> {

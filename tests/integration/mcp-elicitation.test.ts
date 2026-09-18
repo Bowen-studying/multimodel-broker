@@ -38,7 +38,7 @@ limits:
 workspaces: {}
 trace: { storePrompts: false, retentionDays: 1 }
 storage: { driver: memory, sqlitePath: data/broker.elicit.sqlite }
-server: { defaultProfile: chatgpt-pro-readonly }
+server: { defaultProfile: local-full }
 `;
 
 let tempDir: string;
@@ -48,7 +48,7 @@ async function connectClient(capabilities: Record<string, unknown>, register?: (
   const env = Object.fromEntries(Object.entries(process.env).filter(([, value]) => value !== undefined)) as Record<string, string>;
   const transport = new StdioClientTransport({
     command: process.execPath,
-    args: [cliPath, "mcp-stdio", "--profile", "chatgpt-pro-readonly", "--config", path.join(tempDir, "broker.yaml")],
+    args: [cliPath, "mcp-stdio", "--profile", "local-full", "--config", path.join(tempDir, "broker.yaml")],
     cwd: process.cwd(),
     env: { ...env, BROKER_LOG_LEVEL: "silent", BROKER_ELICITATION_PROBE: "1" },
     stderr: "pipe",
@@ -83,7 +83,7 @@ describeIfBuilt("MCP elicitation (server asks the caller's user)", () => {
     const env = Object.fromEntries(Object.entries(process.env).filter(([, value]) => value !== undefined)) as Record<string, string>;
     const transport = new StdioClientTransport({
       command: process.execPath,
-      args: [cliPath, "mcp-stdio", "--profile", "chatgpt-pro-readonly", "--config", path.join(tempDir, "broker.yaml")],
+      args: [cliPath, "mcp-stdio", "--profile", "local-full", "--config", path.join(tempDir, "broker.yaml")],
       cwd: process.cwd(),
       env: { ...env, BROKER_LOG_LEVEL: "silent" },
       stderr: "pipe",

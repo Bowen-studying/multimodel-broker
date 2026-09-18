@@ -4,19 +4,26 @@ import { PROFILE_NAMES, type ProfileName } from "../../core/types.js";
 /**
  * MCP tool profiles.
  *
- * `chatgpt-pro-readonly` is the narrow profile used by the ChatGPT Pro bridge:
- * read/compute tools only. `cancel_task` is deliberately absent because it
- * mutates broker state and is therefore not a read-only capability.
+ * There are exactly two, and the difference is *what a caller may do on this machine*, not which
+ * tools exist:
  *
- * `local-full` is for a local harness (Codex / Claude Code / Hermes / MCP
- * Inspector on this machine) which is allowed to cancel its own tasks.
+ * - `chatgpt-agent` (default): the read/compute tools plus `run_agent`, which drives a local agent
+ *   that CAN write files and run commands. It is mutating by design, so it is only safe where the
+ *   caller is trusted; whether a write actually lands is still decided locally by each worker's own
+ *   configuration (sandbox / permission mode / enabled workers).
+ * - `local-full`: the read/compute tools plus `cancel_task`, for a local harness (Codex / Claude
+ *   Code / MCP Inspector on this machine) that is allowed to cancel its own tasks. It exposes no
+ *   write tool.
+ *
+ * The read-only guarantee comes from the *instance*, not from a third profile: run a separate
+ * process with its own token and database and simply do not enable any write-capable worker in its
+ * config (then `run_agent` fails with "needs an enabled write-capable worker" instead of writing).
  */
 export const TOOL_NAMES = [
   "ping",
   "list_workers",
   "run_worker",
   "run_agent",
-  "run_claude_code",
   "delegate",
   "delegate_batch",
   "get_task",
@@ -39,14 +46,10 @@ const READ_ONLY_TOOLS: readonly ToolName[] = [
 ];
 
 export const PROFILES: Record<ProfileName, { description: string; tools: readonly ToolName[] }> = {
-  "chatgpt-pro-readonly": {
-    description: "Read/compute tools only. No cancel_task. Used by the ChatGPT Pro bridge.",
-    tools: READ_ONLY_TOOLS,
-  },
   "chatgpt-agent": {
     description:
-      "Cloud agent profile: the read/compute tools plus run_agent (local Codex) and run_claude_code (local Claude Code on DeepSeek). Both drive a local agent that CAN write files, so this profile is mutating by design - never use it where a read-only surface is required.",
-    tools: [...READ_ONLY_TOOLS, "run_agent", "run_claude_code"],
+      "Default profile: the read/compute tools plus run_agent, which drives a local agent (Codex, the Windows Codex build, or local Claude Code) that CAN write files and run commands. Mutating by design. A read-only surface is an INSTANCE decision: run a separate process whose config enables no write-capable worker.",
+    tools: [...READ_ONLY_TOOLS, "run_agent"],
   },
   "local-full": {
     description: "Local harness profile: read/compute tools plus cancel_task.",

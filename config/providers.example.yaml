@@ -102,4 +102,4 @@ storage:
   driver: memory
   sqlitePath: data/broker.sqlite
 server:
-  defaultProfile: chatgpt-pro-readonly
+  defaultProfile: chatgpt-agent

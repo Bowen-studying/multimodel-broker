@@ -251,15 +251,19 @@
       </div>
       <div class="card">
         <h3>读写隔离</h3>
-        <p>只读工具拒绝写型 adapter；写型 worker 只能经写工具到达，并标注 readOnlyHint: false。</p>
+        <p>只读工具拒绝写型 adapter；写型 worker 只能经唯一的写工具 <span class="mono">run_agent</span> 到达（首次必须点名 worker，之后可省略），标注 readOnlyHint: false。</p>
       </div>
       <div class="card">
         <h3>公网可达不开端口</h3>
         <p>relay 子命令让本机主动外连自建中继（Cloudflare Worker + Durable Object），无需开放入站端口。</p>
       </div>
       <div class="card">
+        <h3>选定即记住，切换只一步</h3>
+        <p>点名的 worker / model 成为该工具的默认，后续调用可省略；换一个就切换。<span class="mono">list_workers</span> 用 <span class="mono">defaultFor</span> 标出当前选择，trace 记下 <span class="mono">choice.remembered</span>。</p>
+      </div>
+      <div class="card">
         <h3>本地 agent 接入</h3>
-        <p>codex-sdk 与 claude-code adapter；claude-code 后端可换成任意 Anthropic 兼容端点（默认 DeepSeek）。</p>
+        <p>codex-sdk 与 claude-code 两种 adapter；claude-code 的后端与模型由使用者自行配置（任意 Anthropic 兼容端点），本仓库不预置默认模型。</p>
       </div>
 
     </div>
@@ -273,7 +277,7 @@
     <div class="arch-frame">
       <svg role="img" aria-label="Multi-Model Broker 架构图：MCP 客户端 → 传输（本地 stdio / 公网中继）→ Broker Core → Provider adapters（只读 worker / 写型 worker）" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 600" role="img" aria-labelledby="title desc">
   <title id="title">Multi-Model Broker architecture</title>
-  <desc id="desc">MCP clients (ChatGPT, Codex, any harness) connect via local stdio or an outbound relay to the Broker Core (Router, Scheduler, TaskManager, TraceStore), which routes read tools to read-only workers and write tools (run_agent / run_claude_code) to write-capable workers.</desc>
+  <desc id="desc">MCP clients (ChatGPT, Codex, any harness) connect via local stdio or an outbound relay to the Broker Core (Router, Scheduler, TaskManager, TraceStore), which routes read tools to read-only workers and write tool (run_agent, with its worker named explicitly) to write-capable workers.</desc>
 
   <style>
     .t  { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; }
@@ -402,15 +406,15 @@
 
   <rect x="932" y="354" width="308" height="54" rx="6" fill="#1d1315" stroke="#f85149"/>
   <text x="944" y="376" class="t box-label-m">本地 Claude Code</text>
-  <text x="944" y="396" class="m box-sub">run_claude_code · DeepSeek 后端</text>
+  <text x="944" y="396" class="m box-sub">run_agent(worker=claude-code) · 你配置的后端</text>
 
-  <text x="932" y="432" class="t note">写型 worker 只能经 run_agent / run_claude_code 到达</text>
+  <text x="932" y="432" class="t note">写型 worker 只能经 run_agent 到达</text>
 
   <rect x="24" y="516" width="14" height="14" rx="3" fill="#3fb950"/>
   <text x="46" y="527" class="m legend">读工具 → 只读 worker：run_worker / delegate / delegate_batch</text>
 
   <rect x="24" y="544" width="14" height="14" rx="3" fill="#f85149"/>
-  <text x="46" y="555" class="m legend">写工具 → 写型 worker：run_agent / run_claude_code</text>
+  <text x="46" y="555" class="m legend">写工具 → 写型 worker：run_agent(worker=codex|codex-win|claude-code)</text>
 </svg>
     </div>
   </div>
@@ -438,7 +442,7 @@ node dist/cli/index.js doctor</pre>
       <div class="qs">
         <div class="qs-head">回环 HTTP 接入</div>
         <pre>node dist/cli/index.js mcp-http \
-  --profile chatgpt-pro-readonly \
+  --profile chatgpt-agent \
   --token-env BROKER_HTTP_TOKEN \
   --port 8789</pre>
       </div>
@@ -459,7 +463,7 @@ node dist/cli/index.js doctor</pre>
 <section id="tools">
   <div class="wrap">
     <h2>工具</h2>
-    <p class="lead">MCP 面共 10 个注册工具，三种 profile 分别暴露 7 / 9 / 8 个；只读与写型分开标注。</p>
+    <p class="lead">MCP 面共 9 个注册工具，两个 profile 各暴露 8 个（差别只在 <span class="mono">run_agent</span> 与 <span class="mono">cancel_task</span>）；只读与写型分开标注。</p>
     <div class="table-scroll">
       <table>
         <thead>
@@ -473,8 +477,7 @@ node dist/cli/index.js doctor</pre>
           <tr><td class="mono">ping</td><td><span class="pill pill-ro">只读</span></td><td>Broker 健康探测</td></tr>
           <tr><td class="mono">list_workers</td><td><span class="pill pill-ro">只读</span></td><td>列出已配置 worker 及其能力与健康状态</td></tr>
           <tr><td class="mono">run_worker</td><td><span class="pill pill-ro">只读</span></td><td>路由到某个只读 worker 执行，拒绝写型 adapter</td></tr>
-          <tr><td class="mono">run_agent</td><td><span class="pill pill-rw">写型</span></td><td>驱动本地 Codex agent（可写允许清单工作区），readOnlyHint: false · destructiveHint: true</td></tr>
-          <tr><td class="mono">run_claude_code</td><td><span class="pill pill-rw">写型</span></td><td>驱动本地 Claude Code（DeepSeek 后端），readOnlyHint: false · destructiveHint: true</td></tr>
+          <tr><td class="mono">run_agent</td><td><span class="pill pill-rw">写型</span></td><td>驱动本机 agent（worker=codex / codex-win / claude-code，首次必须点名、之后可省略），readOnlyHint: false · destructiveHint: true</td></tr>
           <tr><td class="mono">delegate</td><td><span class="pill pill-ro">只读</span></td><td>单任务委派，拒绝写型 adapter</td></tr>
           <tr><td class="mono">delegate_batch</td><td><span class="pill pill-ro">只读</span></td><td>一次最多 8 个任务并行，部分失败也保留结果</td></tr>
           <tr><td class="mono">get_task</td><td><span class="pill pill-ro">只读</span></td><td>按 taskId 轮询长任务结果</td></tr>
@@ -496,7 +499,7 @@ node dist/cli/index.js doctor</pre>
       <li><strong>输出脱敏</strong> — 密钥 / token 形状的字符串一律替换后再入 trace。</li>
       <li><strong>写型工具独立标注</strong> — readOnlyHint: false · destructiveHint: true，绝不混入只读工具。</li>
       <li><strong>绝不自动重放</strong> — 中继断线返回 outcome_unknown，由上层 idempotencyKey 决定是否恢复。</li>
-      <li><strong>读/写凭据分离</strong> — 写型 worker 只能经 run_agent / run_claude_code 到达，只读工具拒绝写型 adapter。</li>
+      <li><strong>读/写凭据分离</strong> — 写型 worker 只能经 run_agent 到达，只读工具拒绝写型 adapter。</li>
     </ul>
   </div>
 </section>

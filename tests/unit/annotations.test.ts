@@ -44,30 +44,38 @@ describe("MCP tool annotations", () => {
     });
   });
 
-  it("keeps every tool of the read-only profile genuinely read-only", () => {
-    // The invariant the task book demands: a writing capability must never be
-    // smuggled into a profile that is advertised as read-only.
-    for (const name of toolsForProfile("chatgpt-pro-readonly")) {
-      expect(annotationsFor(name).annotations.readOnlyHint).toBe(true);
+  it("keeps every tool read-only except the one tool that is allowed to write", () => {
+    // The invariant: a writing capability must never be smuggled into a tool that is advertised as
+    // read-only. Exactly one tool may mutate, and it must say so.
+    for (const profile of PROFILE_NAMES) {
+      for (const name of toolsForProfile(profile)) {
+        const readOnly = annotationsFor(name).annotations.readOnlyHint;
+        // Exactly two tools may be advertised as mutating: run_agent (it changes the machine) and
+        // cancel_task (it changes broker state). Everything else stays read-only.
+        if (name === "run_agent" || name === "cancel_task") {
+          expect(readOnly).toBe(false);
+        } else {
+          expect(readOnly).toBe(true);
+        }
+      }
     }
   });
 });
 
 describe("MCP profiles", () => {
-  it("hides cancel_task from the ChatGPT Pro profile", () => {
-    expect(toolsForProfile("chatgpt-pro-readonly")).not.toContain("cancel_task");
-    expect(toolsForProfile("local-full")).toContain("cancel_task");
+  it("keeps cancel_task local: the agent profile does not expose it", () => {
     expect(toolsForProfile("chatgpt-agent")).not.toContain("cancel_task");
+    expect(toolsForProfile("local-full")).toContain("cancel_task");
   });
 
-  it("keeps run_agent out of every read-only profile and in the agent profile", () => {
-    expect(toolsForProfile("chatgpt-pro-readonly")).not.toContain("run_agent");
-    expect(toolsForProfile("local-full")).not.toContain("run_agent");
+  it("has exactly two profiles, and only the agent profile carries the write tool", () => {
+    expect([...PROFILE_NAMES]).toEqual(["chatgpt-agent", "local-full"]);
     expect(toolsForProfile("chatgpt-agent")).toContain("run_agent");
+    expect(toolsForProfile("local-full")).not.toContain("run_agent");
   });
 
-  it("exposes exactly the read-only set to ChatGPT Pro", () => {
-    expect([...toolsForProfile("chatgpt-pro-readonly")]).toEqual([
+  it("exposes the documented tool set per profile", () => {
+    expect([...toolsForProfile("chatgpt-agent")]).toEqual([
       "ping",
       "list_workers",
       "run_worker",
@@ -75,6 +83,7 @@ describe("MCP profiles", () => {
       "delegate_batch",
       "get_task",
       "get_trace",
+      "run_agent",
     ]);
     expect([...toolsForProfile("local-full")]).toEqual([
       "ping",
@@ -102,6 +111,6 @@ describe("MCP profiles", () => {
     expect(() => resolveProfile("chatgpt-pro-readonly-please")).toThrow(expect.objectContaining({ code: "CONFIG_ERROR" }));
     expect(resolveProfile("local-full")).toBe("local-full");
     expect(resolveProfile("chatgpt-agent")).toBe("chatgpt-agent");
-    expect(Object.keys(PROFILES)).toHaveLength(3);
+    expect(Object.keys(PROFILES)).toHaveLength(2);
   });
 });

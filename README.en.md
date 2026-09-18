@@ -14,7 +14,7 @@ An MCP-facing task broker for multiple models: an MCP client (ChatGPT, Codex, or
 ## Features
 
 - Two MCP transports: stdio (local harness) and Streamable HTTP (loopback + shared key, optional SSE responses)
-- Three profiles (7 / 9 / 8 tools) over 10 registered tools, with strict read/write separation: write-capable workers are reachable only via `run_agent` / `run_claude_code`
+- Two profiles (8 / 8 tools) over 9 registered tools, with strict read/write separation: write-capable workers are reachable only via `run_agent`, and only when its `worker` is named explicitly
 - Deterministic routing: picks a worker from `requirements` (coding / long_context / low_cost / chinese / batch, …) plus declared capabilities, with chained fallback; an explicitly named worker is never rewritten
 - Long tasks, concurrency, idempotency and audit: `delegate_batch` runs up to 8 tasks in parallel and keeps partial results; `idempotencyKey` deduplicates to avoid double billing; traces never store prompt text by default
 - Publicly reachable without opening a port: `relay` dials out to a self-hosted relay; remote clients reach it via a fixed URL
@@ -68,7 +68,7 @@ npm ci
 npm run check && npm test && npm run build
 node dist/cli/index.js doctor                      # config/storage/provider health
 node dist/cli/index.js mcp-stdio  --profile local-full          # local stdio access
-node dist/cli/index.js mcp-http   --profile chatgpt-pro-readonly \
+node dist/cli/index.js mcp-http   --profile chatgpt-agent \
   --token-env BROKER_HTTP_TOKEN --port 8789                     # loopback HTTP access
 node dist/cli/index.js relay setup|start|status|stop|url         # public (self-hosted relay)
 ```
@@ -103,8 +103,7 @@ Nothing here assumes a particular directory layout, and no credential ships with
 | `ping` | true | false | Health probe, returns the service name; check connectivity before delegating |
 | `list_workers` | true | false | List workers with enabled/healthy state, provider, model, auth mode, capabilities, max concurrency, and reason when unavailable |
 | `run_worker` | true | false | Run one explicitly chosen API worker and return its answer (spends compute, returns text, writes no files/repos/third-party objects) |
-| `run_agent` | **false** | **true** | Local Codex agent that can read and write files and run commands/tests inside an allowlisted workspace |
-| `run_claude_code` | **false** | **true** | Local Claude Code agent (full-auto) that can read and write files and run shell commands |
+| `run_agent` | **false** | **true** | The only write-capable local agent entry point; `worker` (`codex` / `codex-win` / `claude-code`) must be named the first time and may be omitted afterwards (the choice sticks). All three edit files and run commands/tests in full-auto mode; `workspace` is a sandbox boundary for the Codex workers but only a starting directory for `claude-code` |
 | `delegate` | true | false | Deterministically route by `requirements` and run; returns the selected worker, route reason, route audit, and result/task id |
 | `delegate_batch` | true | false | Run 1–8 independent tasks in parallel in one call (mode 'parallel', failurePolicy 'collect_all'); keeps partial results |
 | `get_task` | true | false | Fetch a task by id: status, completion counters, children and (optionally) finished results, for polling |
@@ -113,13 +112,22 @@ Nothing here assumes a particular directory layout, and no credential ships with
 
 There is also a development probe, `ui_probe`: it is registered only when `BROKER_UI_PROBE=1` (it renders a server-hosted inline UI card and reports whether the client renders it, runs no worker, costs nothing) and is not part of any profile's default surface.
 
-**Write-capable workers are reachable only through their own write tools**: read-only tools (`run_worker` / `delegate` / `delegate_batch`) refuse write-capable adapters (`codex-sdk`, `claude-code`); a write-capable worker can only be reached via `run_agent` (local Codex) or `run_claude_code` (local Claude Code), both annotated `readOnlyHint: false, destructiveHint: true`.
+**Write-capable workers are reachable only through `run_agent`**: read-only tools (`run_worker` / `delegate` / `delegate_batch`) refuse write-capable adapters (`codex-sdk`, `claude-code`); a write-capable worker (this machine's Codex, the Windows Codex build, the local Claude Code CLI) can only be reached through `run_agent`, which is annotated `readOnlyHint: false, destructiveHint: true` and **needs `worker` named the first time** (this project never picks a model for you). A refused worker is never remembered, so no unusable choice is left behind.
 
-Three profiles:
+Two profiles:
 
-- `chatgpt-pro-readonly` — 7 read-only tools (used by the ChatGPT Pro bridge)
-- `chatgpt-agent` — those 7 plus `run_agent` / `run_claude_code` (9 tools)
-- `local-full` — the 7 read-only tools plus `cancel_task` (8 tools, for a local harness)
+- `chatgpt-agent` (default) — the 7 read-only tools plus `run_agent` (8 tools). Use this for remote clients; whether it can actually write depends on that instance's own local config
+- `local-full` — the 7 read-only tools plus `cancel_task` (8 tools, for a local harness; the only way to cancel a task, and not offered to remote clients by default)
+
+> For a genuinely read-only remote entry point, **give that instance a config with no write-capable worker** (the write tool is still listed, but every call is refused) rather than relying on a profile name: a profile decides the tool surface, not the permissions.
+
+### The model choice is sticky, and switching it is always explicit
+
+- **Naming one remembers it**: an explicit `worker` on `run_agent` / `run_worker` becomes that tool's default, so a later call may omit `worker` and keep using it
+- **Naming another switches**: passing a different `worker` switches, and the new one becomes the default — switching is always one explicit argument
+- **`model` works the same way**: remembered per worker and reapplied when omitted; pass `model: "auto"` to forget the override and fall back to the worker's configured model
+- **Never silent**: `list_workers` marks the remembered worker with `defaultFor: ["run_agent"]`, and the trace carries a `choice.remembered` event
+- **The preference lives in the instance's own store**, so two instances never share a choice — and this project ships **no default model**: models are your configuration
 
 ## Three ways to connect
 

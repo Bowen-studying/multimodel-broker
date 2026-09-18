@@ -38,7 +38,7 @@ limits:
 workspaces: {}
 trace: { storePrompts: false, retentionDays: 1 }
 storage: { driver: memory, sqlitePath: data/broker.ui.sqlite }
-server: { defaultProfile: chatgpt-pro-readonly }
+server: { defaultProfile: local-full }
 `;
 
 let tempDir: string;
@@ -48,7 +48,7 @@ async function connect(extraEnv: Record<string, string> = {}): Promise<Client> {
   const env = Object.fromEntries(Object.entries(process.env).filter(([, value]) => value !== undefined)) as Record<string, string>;
   const transport = new StdioClientTransport({
     command: process.execPath,
-    args: [cliPath, "mcp-stdio", "--profile", "chatgpt-pro-readonly", "--config", path.join(tempDir, "broker.yaml")],
+    args: [cliPath, "mcp-stdio", "--profile", "local-full", "--config", path.join(tempDir, "broker.yaml")],
     cwd: process.cwd(),
     env: { ...env, BROKER_LOG_LEVEL: "silent", ...extraEnv },
     stderr: "pipe",

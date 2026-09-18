@@ -131,8 +131,9 @@ export const RunWorkerSchema = z
       .string()
       .min(1)
       .max(64)
+      .optional()
       .describe(
-        "Worker id from list_workers; an explicit choice is never rewritten by the router. Pick by what the task needs: 'deepseek'/'glm' are cheap API workers that only return text (questions, explanations, drafting, review) and cannot touch files; anything that must read or change files, or run commands, belongs in run_agent (local Codex) or run_claude_code (local Claude Code on DeepSeek), which are separate tools.",
+        "Worker id from list_workers; an explicit choice is never rewritten by the router, and it is REMEMBERED: omit `worker` on a later call to reuse the same one, or name a different worker to switch (list_workers marks the current choice with defaultFor). Pick by what the task needs: 'deepseek'/'glm' are cheap API workers that only return text (questions, explanations, drafting, review) and cannot touch files; anything that must change files or run commands belongs in run_agent, which is a separate (write-capable) tool. Write-capable workers are refused here.",
       ),
     task: taskText,
     context: contextText,
@@ -148,9 +149,17 @@ export const RunWorkerSchema = z
 export const RunAgentSchema = z
   .object({
     worker: z
-      .enum(["codex", "codex-win"])
-      .default("codex")
-      .describe("Which local Codex runtime to use. 'codex' = the broker's own Codex on this machine (use it for paths on this machine). 'codex-win' = the Windows Codex build, run with Windows paths, so the session is written to the Windows Codex store and appears in the Codex app - give a workspace mounted under /mnt/<drive> and it is translated for you. Both edit files and run commands; neither prompts for approval while it runs."),
+      .enum(["codex", "codex-win", "claude-code"])
+      .optional()
+      .describe(
+        // No built-in default: the broker never picks a harness or model on its own. A choice made
+        // here sticks, so follow-up calls may omit it (and switch by naming another one).
+        "Which local agent runs the task. Name it the first time - this broker has no default of its own, so a call with no `worker` and nothing remembered is refused. Naming one makes it sticky: omit `worker` on a later call to reuse it, or name a different one to switch (list_workers marks the current choice with defaultFor). All three edit files and run shell commands without prompting; pick by harness and by what the workspace means:\n"
+        + "- 'codex': the broker machine's own Codex. The workspace is a WRITE BOUNDARY - Codex is confined to it by the sandbox, and a run draws on the Codex subscription quota. Use it when the work needs Codex's own context or is confined to one directory. Paths on this machine are /home/... or /mnt/<drive>/...\n"
+        + "- 'codex-win': the Windows Codex build (paths in Windows form; a /mnt/<drive>/... workspace is translated for you), so the run is recorded in that machine's Codex store. Same sandbox and quota story as 'codex'.\n"
+        + "- 'claude-code': the local Claude Code CLI on the backend its operator configured. The workspace is only the STARTING DIRECTORY - the agent runs as the operator's user and can reach well beyond it, so treat it as 'the tree to work in', not a sandbox. It bills per token to that backend instead of using the Codex quota, which makes it the cheap choice for small, well-specified edits (seconds, fractions of a cent).\n"
+        + "A worker that is not enabled on this machine is refused before anything runs.",
+      ),
     task: taskText,
     context: contextText,
     model: z
@@ -161,36 +170,12 @@ export const RunAgentSchema = z
       .regex(/^[A-Za-z0-9][A-Za-z0-9._:-]*$/, "model ids are plain identifiers")
       .optional()
       .describe(
-        "Optional model override for this run, e.g. gpt-6-astra, gpt-5.6-sol, gpt-5.6-terra, gpt-5.6-luna, gpt-5.5. Omit it (or pass \"auto\") to let Codex use the model configured on this machine. Only models the signed-in account actually offers work; a rejected model fails the run with the provider's own message.",
+        "Optional model override for this run, as an id your provider actually serves (for the Codex workers a Codex model; for 'claude-code' whatever your configured backend offers). An override is remembered per worker and reapplied when a later call omits it; pass \"auto\" to forget it and fall back to the worker's configured model. Omit it entirely to use whatever is already in effect - this project ships no model default of its own. A rejected model fails the run with the provider's own message.",
       ),
     workspace: workspaceName.optional().describe(
-      "Workspace name from the allowlist. Required in practice: the agent may only write inside an allowlisted workspace, and the broker refuses the call without one.",
+      "Working directory for the run: an allowlisted workspace name, or an absolute path when this instance allows it. Required. For the Codex workers it is the write boundary (the sandbox confines writes to it); for 'claude-code' it is only where the agent starts.",
     ),
     files,
-    timeoutMs,
-    waitMs,
-    traceLevel,
-    idempotencyKey,
-  })
-  .strict();
-
-export const RunClaudeCodeSchema = z
-  .object({
-    task: taskText,
-    context: contextText,
-    model: z
-      .string()
-      .trim()
-      .min(1)
-      .max(64)
-      .regex(/^[A-Za-z0-9][A-Za-z0-9._:-]*$/, "model ids are plain identifiers")
-      .optional()
-      .describe(
-        "Backend model for this run. Omit to use the worker's configured default (deepseek-flash). Available on this account: deepseek-flash (cheap, default) and deepseek-v4-pro (about 4x the input price, ~3x the output price).",
-      ),
-    workspace: workspaceName.describe(
-      "Working directory for the run: an allowlisted workspace name, or an absolute path when this instance runs with server.allowAnyWorkspace=true (system and credential trees stay refused). Claude Code runs as the operator's own user, so this sets where it starts, not a hard sandbox.",
-    ),
     timeoutMs,
     waitMs,
     traceLevel,

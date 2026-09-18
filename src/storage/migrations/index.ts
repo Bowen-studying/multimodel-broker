@@ -16,6 +16,22 @@ export interface Migration {
   statements: string[];
 }
 
+/**
+ * Version 2: a tiny key/value table for operator preferences. Kept separate from tasks/runs so a
+ * preference can never be mistaken for task data, and so `prune` cannot delete it by accident.
+ */
+export const migration002Settings: Migration = {
+  version: 2,
+  name: "settings",
+  statements: [
+    `CREATE TABLE IF NOT EXISTS settings (
+       key TEXT PRIMARY KEY,
+       value TEXT NOT NULL,
+       updated_at TEXT NOT NULL
+     )`,
+  ],
+};
+
 export const migration001Initial: Migration = {
   version: 1,
   name: "initial",
@@ -76,7 +92,7 @@ export const migration001Initial: Migration = {
   ],
 };
 
-export const MIGRATIONS: Migration[] = [migration001Initial];
+export const MIGRATIONS: Migration[] = [migration001Initial, migration002Settings];
 
 /** Exposed for the sqlite store and its tests. */
 export type { Store, TaskRecord, TraceLevel };
