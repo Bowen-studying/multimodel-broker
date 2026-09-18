@@ -311,6 +311,8 @@ export class ClaudeCodeProvider implements WorkerProvider {
       `model=${(summary.models ?? []).join(",") || model}`,
       `mode=${summary.permission_mode ?? this.permissionMode}`,
       `turns=${summary.num_turns ?? "?"}`,
+      // Parts, not just the total: `in` is everything the run sent, `miss` is what is billed full price.
+      `in=${(summary.usage as { input_tokens?: number } | undefined)?.input_tokens ?? "?"}(miss=${(summary.usage as { miss_input_tokens?: number } | undefined)?.miss_input_tokens ?? "?"},hit=${(summary.usage as { cache_read_input_tokens?: number } | undefined)?.cache_read_input_tokens ?? "?"})`,
       `cost_est=$${(summary.cost_estimate_usd ?? 0).toFixed(5)}`,
       `files=${files.length}`,
       `commands=${(summary.commands ?? []).length}`,

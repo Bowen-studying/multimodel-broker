@@ -21,6 +21,7 @@ import { spawn, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { usageParts } from "./usage.mjs";
 
 const args = process.argv.slice(2);
 const arg = (name, fallback) => {
@@ -193,23 +194,15 @@ const exitCode = await done;
 clearTimeout(killTimer);
 fs.rmSync(path.dirname(settingsPath), { recursive: true, force: true });
 
-// DeepSeek peak pricing, USD per 1M tokens: cache-miss input 0.30, cache-hit input 0.006,
-// output 1.20. This is an UPPER BOUND: peak rates, and the harness counts every turn's context
-// again. Calibrate against the account balance (GET /user/balance) before trusting it as a budget.
-// Claude Code reports the whole prompt as input_tokens and the cached share separately, so the
-// miss share is the difference - charging both at full price double-counts the same tokens.
-const inputTotal = Number(usageReported.input_tokens ?? 0);
-const inputHit = Number(usageReported.cache_read_input_tokens ?? 0);
-const inputMiss = Math.max(0, inputTotal - inputHit);
-// The harness aggregates per turn, so occasionally cache_read_input_tokens comes back LARGER than
-// input_tokens - physically impossible for one prompt. Clamping to zero is the only safe move here
-// (never bill more than reported), but silently clamping would hide the inconsistency from whoever
-// reconciles the numbers later, so it travels with the result as a note.
-const usageNote = inputHit > inputTotal
-  ? `harness reported cache_read_input_tokens (${inputHit}) > input_tokens (${inputTotal}); miss share clamped to 0 - treat cost_estimate_usd as a floor, and calibrate against the account balance`
-  : undefined;
-const outputTokens = Number(usageReported.output_tokens ?? 0);
-const costEstimate = (inputMiss * 0.30 + inputHit * 0.006 + outputTokens * 1.20) / 1e6;
+// Token accounting lives in ./usage.mjs (shared with its unit test), because the field semantics are
+// easy to get wrong: input_tokens is the FRESH input, and cache writes are billed as misses too.
+const parts = usageParts(usageReported);
+const inputTotal = parts.total;
+const inputHit = parts.cacheHit;
+const inputMiss = parts.miss;
+const outputTokens = parts.output;
+const costEstimate = parts.costEstimate;
+const usageNote = parts.note;
 
 const summary = {
   status: timedOut ? "timeout" : exitCode === 0 ? "ok" : "error",
@@ -220,11 +213,13 @@ const summary = {
   cwd: CWD,
   result,
   usage: {
-    // Convention: input_tokens is the WHOLE prompt (what the backend reports); the cached share is
-    // reported separately, so a reader can recompute the bill as (input - cache_read) + cache_read.
+    // input_tokens is the TOTAL the run sent (miss + cache read), so `cacheHit <= input` always holds.
+    // The parts are explicit, so the bill recomputes as: miss = fresh + cache_write, hit = cache_read.
     input_tokens: inputTotal,
+    fresh_input_tokens: parts.fresh,
     cache_read_input_tokens: inputHit,
-    cache_creation_input_tokens: Number(usageReported.cache_creation_input_tokens ?? 0),
+    cache_creation_input_tokens: parts.cacheWrite,
+    miss_input_tokens: parts.miss,
     output_tokens: outputTokens,
   },
   cost_estimate_usd: Number(costEstimate.toFixed(6)),
