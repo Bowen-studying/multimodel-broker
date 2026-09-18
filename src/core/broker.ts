@@ -120,10 +120,16 @@ export class Broker {
     const provider = this.options.config.providers[worker];
     const adapter = provider?.adapter;
     if (!adapter || !WRITE_CAPABLE_ADAPTERS.has(adapter) || provider?.enabled === false) {
-      throw new BrokerError(
-        "INVALID_INPUT",
-        `run_agent needs an enabled write-capable worker (${[...WRITE_CAPABLE_ADAPTERS].join(", ")}); received "${worker}"`,
-      );
+      // Name the worker ids that would actually work here - the adapter names alone read like worker
+      // ids ("codex-sdk"), and a disabled worker is worth calling out explicitly. Someone who named a
+      // worker that is switched off on this machine should learn that from the message, not from a
+      // two-minute timeout.
+      const enabled = Object.entries(this.options.config.providers)
+        .filter(([, config]) => config.enabled !== false && WRITE_CAPABLE_ADAPTERS.has(config.adapter))
+        .map(([id]) => id);
+      const hint = enabled.length ? `enabled here: ${enabled.join(", ")}` : "no write-capable worker is enabled on this machine";
+      const disabled = provider && provider.enabled === false ? ` ("${worker}" is configured but disabled)` : "";
+      throw new BrokerError("INVALID_INPUT", `run_agent needs an enabled write-capable worker - ${hint}; received "${worker}"${disabled}`);
     }
   }
 

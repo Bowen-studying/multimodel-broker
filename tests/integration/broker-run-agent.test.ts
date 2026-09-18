@@ -80,7 +80,8 @@ describe("run_agent worker gate", () => {
   it("refuses a local-agent worker that is configured but disabled", async () => {
     const harness = await harnessWith({ codex: providerConfig(), "codex-win": providerConfig({ enabled: false }) });
     await expect(harness.broker.runAgent({ worker: "codex-win", workspace: "scratch", task: "hi" })).rejects.toThrowError(
-      expect.objectContaining({ code: "INVALID_INPUT" }),
+      // The message says the worker is disabled here, and lists what would work instead.
+      expect.objectContaining({ code: "INVALID_INPUT", message: expect.stringMatching(/enabled here: codex.*configured but disabled/s) }),
     );
   });
 
