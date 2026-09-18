@@ -24,8 +24,11 @@ export class Router {
    * @param options.allowWriteCapable set by the mutating tool (run_agent) for
    * their own run. Everywhere else a write-capable adapter is refused, because those tools are
    * advertised as read-only and must stay true to that.
+   * @param options.rememberedWorker the worker was filled in from the caller's sticky choice, not
+   * named in this request. The audit text must say so - "explicit" would be a lie about why this
+   * worker was picked, and the caller needs to know that passing `worker` is how you switch.
    */
-  route(request: TaskSubmission, options: { allowWriteCapable?: boolean } = {}): RouterDecision {
+  route(request: TaskSubmission, options: { allowWriteCapable?: boolean; rememberedWorker?: boolean } = {}): RouterDecision {
     const allowWrite = options.allowWriteCapable === true;
     if (request.worker !== undefined) {
       // A local agent that can write files has its own tool; naming it here would smuggle a
@@ -38,7 +41,14 @@ export class Router {
         );
       }
       if (!this.providers.available(request.worker)) throw new BrokerError("WORKER_UNAVAILABLE", "Explicit worker is disabled, unhealthy, or unavailable; it was not rewritten");
-      return { worker: request.worker, reason: "Explicit worker requested by caller", candidates: [request.worker], matchedRules: ["explicit"] };
+      return {
+        worker: request.worker,
+        reason: options.rememberedWorker
+          ? `Remembered choice reused: "${request.worker}" was named for this tool in an earlier call - pass worker to switch`
+          : "Explicit worker requested by caller",
+        candidates: [request.worker],
+        matchedRules: options.rememberedWorker ? ["remembered"] : ["explicit"],
+      };
     }
     const r = request.requirements ?? {};
     const matchedRules: Array<keyof BrokerConfig["routing"]> = [];

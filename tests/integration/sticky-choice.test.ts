@@ -113,6 +113,13 @@ describe("sticky choice: 选定即记住，显式即切换", () => {
     expect(first.data?.selectedWorker).toBe("mock");
     const second = await h.broker.runWorker({ task: "hello again" });
     expect(second.data?.selectedWorker).toBe("mock");
+    // The audit text must not claim the caller named a worker in this request.
+    expect(second.data?.routeReason).toMatch(/remembered/i);
+    expect(second.data?.route.matchedRules).toEqual(["remembered"]);
+    // ...while an actually explicit call keeps saying so.
+    const explicitAgain = await h.broker.runWorker({ worker: "mock", task: "hello once more" });
+    expect(explicitAgain.data?.routeReason).toBe("Explicit worker requested by caller");
+    expect(explicitAgain.data?.route.matchedRules).toEqual(["explicit"]);
     // Not silent: the trace records that the run reused a remembered choice.
     const trace = (await h.broker.getTrace(second.traceId!, "debug")) as { events: Array<{ type: string }> };
     expect(trace.events.some((event) => event.type === "choice.remembered")).toBe(true);

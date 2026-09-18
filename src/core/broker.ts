@@ -231,6 +231,8 @@ export class Broker {
       route = this.router.route(request, {
         // `run_claude_code` is legacy: merged into run_agent, but stored rows may still carry it.
         allowWriteCapable: task.kind === "run_agent" || task.kind === "run_claude_code",
+        // Filled in from the sticky choice rather than named here - the audit text must say so.
+        rememberedWorker: request.remembered === true,
       });
       await traceStore.emit(task.traceId, "route.selected", { ...route }, { taskId: task.id });
       if (request.remembered) {
