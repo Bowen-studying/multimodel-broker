@@ -81,7 +81,7 @@ node dist/cli/index.js relay setup|start|status|stop|url         # 公网（自�
 
 这个项目不假设任何特定的目录布局，也没有内置任何凭据：
 
-1. **至少一个 API worker**：`cp .env.example .env`，填入一个 `*_API_KEY`（DeepSeek / GLM / Gemini 任一），
+1. **至少一个 API worker**：`cp .env.example .env`，填入一个 `*_API_KEY`（DeepSeek / GLM / Gemini 等），
    然后在 `config/providers.yaml` 里启用对应 provider；只想先看效果就用 `config/providers.mock.yaml`（纯假实现，零成本）。
 2. **可选：本地 agent（写型）**：`codex` 走本机 Codex 登录（`~/.codex`，broker 不读也不复制任何凭据）；
    `claude-code` 需要一个 Anthropic 兼容端点与令牌，两种给法任选——
