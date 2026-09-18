@@ -375,6 +375,21 @@ export class CodexProvider implements WorkerProvider {
     }
   }
 
+  /**
+   * Post-send classification. The Codex SDK retries transport hiccups internally ("Reconnecting... N/5")
+   * and only surfaces them once they are exhausted; by then the prompt has been delivered, so an
+   * automatic retry here would re-run a task that may already have edited files. Rate limits stay
+   * retryable - they are refused before any work happens.
+   */
+  private classifyPostSendFailure(message: string): BrokerError {
+    const text = message.toLowerCase();
+    if (/rate limit|429|too many requests/.test(text)) return new BrokerError("PROVIDER_RATE_LIMITED", `${this.id}: ${message}`);
+    if (/reconnect|timed out|timeout|disconnect|stream|connection|os error|econnreset|econnrefused|broken pipe/.test(text)) {
+      return new BrokerError("CONNECTION_LOST_AFTER_SEND", `${this.id}: ${message}`, { retryable: false });
+    }
+    return new BrokerError("PROVIDER_ERROR", `${this.id}: ${message}`);
+  }
+
   private async runBuffered(thread: CodexThreadLike, prompt: string, signal: AbortSignal) {
     const turn = await thread.run(prompt, { signal });
     const finalResponse = turn.finalResponse ?? "";
@@ -389,24 +404,35 @@ export class CodexProvider implements WorkerProvider {
    */
   private async runStreamed(thread: CodexThreadLike, prompt: string, request: WorkerRequest, signal: AbortSignal) {
     if (!thread.runStreamed) return this.runBuffered(thread, prompt, signal);
-    const { events } = await thread.runStreamed(prompt, { signal });
     let finalResponse = "";
     let usage: WorkerResult["usage"];
-    for await (const event of events) {
-      if (signal.aborted) throw signal.reason ?? new BrokerError("CANCELLED", "Codex run cancelled", { retryable: false });
-      if (event.type === "turn.completed") {
-        usage = this.mapUsage(event.usage);
-        continue;
+    try {
+      const { events } = await thread.runStreamed(prompt, { signal });
+      for await (const event of events) {
+        if (signal.aborted) throw signal.reason ?? new BrokerError("CANCELLED", "Codex run cancelled", { retryable: false });
+        if (event.type === "turn.completed") {
+          usage = this.mapUsage(event.usage);
+          continue;
+        }
+        // Both of these arrive AFTER the agent has been handed the prompt, so the run may already
+        // have touched files: classify them as post-send failures rather than retryable ones.
+        if (event.type === "turn.failed") throw this.classifyPostSendFailure("turn failed");
+        if (event.type === "error") throw this.classifyPostSendFailure(event.message ?? "stream error");
+        if (event.type !== "item.completed" || !event.item) continue;
+        const item = event.item;
+        if (item.type === "agent_message" && typeof item["text"] === "string") finalResponse = item["text"];
+        if (item.type === "reasoning") continue; // never traced
+        if (item.type === "command_execution" || item.type === "file_change" || item.type === "mcp_tool_call" || item.type === "web_search") {
+          request.emit?.("tool.event", { provider: this.id, itemType: item.type, id: item["id"], status: item["status"], command: item["command"], tool: item["tool"] });
+        }
       }
-      if (event.type === "turn.failed") throw new BrokerError("PROVIDER_ERROR", `${this.id}: turn failed`);
-      if (event.type === "error") throw new BrokerError("PROVIDER_ERROR", `${this.id}: ${event.message ?? "stream error"}`);
-      if (event.type !== "item.completed" || !event.item) continue;
-      const item = event.item;
-      if (item.type === "agent_message" && typeof item["text"] === "string") finalResponse = item["text"];
-      if (item.type === "reasoning") continue; // never traced
-      if (item.type === "command_execution" || item.type === "file_change" || item.type === "mcp_tool_call" || item.type === "web_search") {
-        request.emit?.("tool.event", { provider: this.id, itemType: item.type, id: item["id"], status: item["status"], command: item["command"], tool: item["tool"] });
-      }
+    } catch (error) {
+      // Cancellation and our own deadline keep their meaning; anything else raised here happened after
+      // the prompt was delivered (the SDK had already started a thread), so it must not be retried -
+      // a retried write-capable run can duplicate work, which is exactly what
+      // CONNECTION_LOST_AFTER_SEND exists for (see src/core/errors.ts).
+      if (error instanceof BrokerError && (error.code === "CANCELLED" || error.code === "TIMEOUT")) throw error;
+      throw this.classifyPostSendFailure(error instanceof Error ? error.message : String(error));
     }
     if (!finalResponse.trim()) throw new BrokerError("PROVIDER_BAD_RESPONSE", `${this.id}: Codex returned no final response`, { retryable: false });
     return { finalResponse, usage };
