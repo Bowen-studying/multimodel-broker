@@ -39,6 +39,8 @@ Registry 只回答“这是什么课、Plan 在哪里、Sessions 如何定位、
 
 找到后实际 fetch。partial_text、截断或未提取图表只记录读到部分，具体页/图未见不能声称看过。需要图示用宿主可用能力；资料不可读时说明具体缺口，继续可用内容，不编教材引用。用户说最新/刚上传/更新时每次live refresh，尚未云同步要如实说；不拿旧资料充新版本。保存实际URL、修改时间与 read/index_only/unavailable。
 
+PPT/PPTX 路由必须按 MIME 与扩展名区分：`application/vnd.google-apps.presentation` 才能调用原生 Slides 的 outline/text 工具；`.ppt`/`.pptx`（包括返回 `docs.google.com/presentation/d/...` 外观链接但 MIME 仍为 PowerPoint 的文件）必须用 Drive `fetch` 读取原始文件。二进制 fetch 返回空 `content` 但带 `file_uri`/下载引用时，只能记为 `read`/`partial_text` 的原始文件已取得，不能声称已读到幻灯片文字；连接器对大文件解码失败时记为 `unavailable`，改用精确文件 ID/文件 URL重试一次，不把失败当成文件不存在。需要课堂文字时，应由可用的 Office/PPTX 提取或视觉读取能力另行处理，并把实际页码、标题或“仅取得原文件”写入 sources.note。
+
 教材引用落到实际文件 URL/文件标识和可见定位：PDF 页、PPT 页、章节/标题、图号或时间戳，并在 sources.note 保存版本与读取范围。连接器未返回页码时引用实际可见标题或原文片段并说明页码未知；搜索摘要只算 index_only。讲解中让学生能区分教材结论、教师推导和示意例子。只有空间结构、变化过程或实际误解需要时才加图示/交互；生成图标明示意，不能冒充教材原图，工具效果不算学习证据。
 
 ## 复盘与信号
