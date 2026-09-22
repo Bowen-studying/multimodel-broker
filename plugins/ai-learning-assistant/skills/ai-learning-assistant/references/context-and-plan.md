@@ -4,13 +4,13 @@
 
 复用本轮入口已固定的目标分支与 target commit，不在本引用中重新取 head。若需要刷新，入口和四份运行文档（TEACHING.md、context-and-plan.md、record-format.md、tool-contract.md）以及相关协议、计划、状态、证据都须在新固定的同一 commit 完整重读，再切换依据。
 
-旧 CURRENT_STATE 的“先问上次做到哪题”若已有 Session 回答，就主动接续；旧“暂无证据”不抹掉后来作答，后来作答也不自动晋级。按课程和日期读近期记录，再沿来源补足；旧 Markdown 缺 id/精确提示/日期时保留文件、章节、原话引用，不伪造。最近30条仍不清楚时继续查相关来源；只有真实矛盾无法解时问一个必要问题。
+旧 CURRENT_STATE 的“先问上次做到哪题”若已有 Session 回答，就主动接续；旧“暂无证据”不抹掉后来作答，后来作答也不自动晋级。按课程和日期读近期记录，再沿来源补足；若最近记录有 `continuation.recovery`，以其 anchor 定位、先做 minimalAction，并跳过 `doNotRepeat` 中已有证据支持的工作。旧 Markdown 缺 id/精确提示/日期时保留文件、章节、原话引用，不伪造。最近30条仍不清楚时继续查相关来源；只有真实矛盾无法解时问一个必要问题。
 
 ## 共用学习路径与三条轴
 
 规划路径、讲解、练习、历史回填和复盘共用同一 commit 下的协议、课程地图、计划、正式状态及相关 Sessions。计划或地图已有概念标识就沿用；没有时用其可定位章节/目标名称，不自建另一套概念库。选课与选概念时说明它对应哪个已有目标，不能让最近聊天话题替代完整计划。
 
-启动先处理用户本次明确要求；否则优先最近未完成验证和既有计划/记录中已经到期的复习，再考虑新概念。两者都到期时按先修阻塞与既有优先级安排短复核，其余保留 nextStep。只把已有日期明确的安排称为“到期”，没有复习日期就不编造 FSRS/SM-2 排期或宣称逾期。新概念所需基础缺失时先补讲并检验该缺口；历史摘要不足以证明先修已满足，也不要求与新概念无关的所有旧内容先全部掌握。
+启动先处理用户本次明确要求；否则优先最近未完成验证、已有 delayed/transfer 缺口和既有计划/记录中已经到期的复习，再考虑新概念。两者都到期时按先修阻塞与既有优先级安排短复核，其余保留 nextStep。只把已有日期明确的安排称为“到期”；没有复习日期就不编造 FSRS/SM-2 排期或宣称逾期。新概念所需基础缺失时先补讲并检验该缺口；历史摘要不足以证明先修已满足，也不要求与新概念无关的所有旧内容先全部掌握。
 
 三条轴是从既有计划与证据重建的事实视图，不是新能力量表：
 
@@ -21,6 +21,15 @@
 | 已独立验证 | 对应概念的真实新题/变式、原话、提示程度与结果；沿用原协议和现有记录对独立验证的条件，未有证据就保留未验证。 |
 
 同一概念可以同时是“课堂已讲解、自述课后读过、独立验证未完成”。三轴在本事件 summary 中写必要事实，plan.items 仍只写本次目标进展；原五级正式能力不由三轴自动换算，不添加概率掌握率。复述、教师示范、动画完成或复习次数均不能代替独立证据。
+
+## Evidence & retention v1
+
+证据链沿用现有 evidence，不另建表：`baseline → immediate → delayed → transfer` 只是可选的观察阶段标签。`delayed` 必须来自真实间隔后的新题或变式，并通过 `retestOf` 连接到早先 evidenceId；`transfer` 检查陌生但相关情境。旧记录没有阶段字段时保持未知，不能回推成 immediate，也不能把一次当场 verified 当作延迟保持。
+
+每条重要证据都要区分它支持什么、不能证明什么，使用 `evidenceLimits.supports` 与 `evidenceLimits.doesNotProve`。一次独立作答最多说明该题及明确条件下的表现；它不能自动证明几天后的保持、陌生情境迁移或未被题目区分的误解。不得用这些边界字段创建 mastery 分数或新的正式能力等级。
+
+周复盘把 retention 放进既有 `week_review`：检查近期当场 verified 且没有 delayed/transfer 复测的高价值 evidence，优先安排一个真实变式；若复盘当下没有新作答，就在 `retentionReview.pendingRetestEvidenceIds` 与 `continuation.nextStep` 留下待办，不写成已保持。只使用记录中实际存在的日期判断到期，不创建后台调度器或第二份周报。
+
 ## Course Registry 与 canonical courseId
 
 先在目标 commit 读取 `00_学习系统/COURSE_REGISTRY.md`，用用户请求、Session 路径或 registry 兼容别名解析唯一 `courseId`，再读取该课程的 Plan 与相关 Sessions。新记录只使用 registry 的 canonical `courseId`；旧记录的 `course`、中文课程名和历史 Markdown 只用于兼容读取，不作为新身份。
@@ -45,9 +54,9 @@ PPT/PPTX 路由必须按 MIME 与扩展名区分：`application/vnd.google-apps.
 
 ## 复盘与信号
 
-周末/四周复盘在下一次启动检查真实学习日期、已完成复盘，不靠后台。选2–4项，KEEP/CHANGE/STOP/TEST写入本次Session并指向计划/证据；能力/优先级仅提建议。
+周末/四周复盘在下一次启动检查真实学习日期、已完成复盘，不靠后台。除 KEEP/CHANGE/STOP/TEST 外，至少查看一项 delayed retention 缺口或已完成的 delayed/transfer 复测；选2–4项写入本次Session并指向计划/证据，必要时用 `retentionReview` 记录 reviewed/completed/pending evidenceId。能力/优先级仅提建议。
 
 Learning Signal优先保存在同一Session的learningSignal，周复盘同时读取原learning-signals.md和Sessions信号；旧Signal保留。这避免每个检查点竞争写全局文件，也不建立第二份状态。
 
-工作日只随实际活动保存必要证据、困难和接续，不要求额外填完整复盘表。周末复盘从这些同源记录挑选断点和已有到期复习；旧答案用来源引用，不复制为本次新 evidence。只有当场新作答才增加新证据。任一模式遇到待核验操作先恢复同一 operationId，再保存确实新增的活动。
+工作日只随实际活动保存必要证据、困难和接续，不要求额外填完整复盘表。周末复盘从这些同源记录挑选断点、已有到期复习和 delayed retention 缺口；旧答案用来源引用，不复制为本次新 evidence。只有当场新作答才增加新证据；周复盘的安排本身不算保持证据。任一模式遇到待核验操作先恢复同一 operationId，再保存确实新增的活动。
 

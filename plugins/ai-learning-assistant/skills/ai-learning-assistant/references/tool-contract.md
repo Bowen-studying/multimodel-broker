@@ -13,7 +13,7 @@
 
 ## 写入范围与格式
 
-日常仅 create_file 创建 `00_学习系统/90_Sessions/chat-<operationId>.md`，不修改已有文件、不 delete、不 update_ref。一个记录包含证据、接续与计划进度，单次文件提交足以恢复；GitHub commit 和回读 blob 构成回执，不依赖第二个回执文件。
+日常仅 create_file 创建 `00_学习系统/90_Sessions/chat-<operationId>.md`，不修改已有文件、不 delete、不 update_ref。一个记录包含证据、接续与计划进度；Evidence & Retention v1 的阶段、证据边界、恢复锚点和周复盘摘要都是可选扩展，单次文件提交足以恢复；GitHub commit 和回读 blob 构成回执，不依赖第二个回执文件。
 
 operationId 首次准备时固定，使用安全 sessionId + 检查点序号；可用可见会话标识的安全片段，没有则首次选唯一安全 sessionId 并一直复用。仅 ASCII 字母数字下划线连字符，长度不超100。同名不同内容停止，不能换 id 避开冲突。
 
@@ -28,7 +28,7 @@ operationId 首次准备时固定，使用安全 sessionId + 检查点序号；�
 5. create 超时或结果不明：查询同一路径。完整匹配则从该文件提交历史取得真实写入 commit，再核验；不存在则保留待重试且 id 不变；内容不同报冲突。连接失败不是未写入，不能盲目重发。
 6. 已有相同内容的重试不要求当前 head 仍等于旧 contextCommit；核对它真实创建的 commit 和内容，不重复写。返回提交但回读失败时说“提交已返回，核验未完成”，保留 commit/id，仅补回读。
 
-新对话从 GitHub 文件和提交重新核验，不依据旧回答的“已保存”。历史普通 Markdown 可读为来源，不冒充新格式验证记录。
+新对话从 GitHub 文件和提交重新核验，不依据旧回答的“已保存”。中断或跨设备恢复时先读取最近一个真实 Session 及其 `continuation.recovery`，按 anchor 执行 minimalAction；没有新作答就只更新接续，不复制旧 evidence。历史普通 Markdown 可读为来源，不冒充新格式验证记录。
 
 ## 实际边界
 
