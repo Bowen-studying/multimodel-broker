@@ -56,6 +56,8 @@ PPT/PPTX 路由必须按 MIME 与扩展名区分：`application/vnd.google-apps.
 
 当需要把上述图文讲解沉淀为可在手机端阅读的学习页时，默认生成 **PDF**，而不是上传 HTML 源文件。PDF 必须保留“文字解释 → 对应老师原图/原页 → 紧接解释 → 下一知识点”的图文顺序，并优先使用课程资料中的原图，不重绘。生成后上传到 ChatGPT 空间/Library 的 `/AI学习助手/<课程显示名>/` 层级；电子技术示例为 `/AI学习助手/电子技术/`。文件名使用可读中文主题名，例如 `Chapter1_Zener_Diode_图文学习页.pdf`。除非用户明确要求网页或其他格式，否则 PDF 是移动端学习页的默认交付格式。
 
+HTML 学习页中的公式默认使用浏览器原生可渲染的 HTML/Unicode（如 `<sub>`、`<sup>`、`Ω`、`Δ`、CSS 间距），**不得把 LaTeX 控制命令直接写进普通 HTML 文本**（例如 `\\quad`、`\\frac`、`\\alpha`），除非页面显式内置并启用 MathJax/KaTeX 且已实际渲染验证。交付前必须做自动检查：扫描残留 `\\[A-Za-z]+` 形式的 TeX 控制词；发现即视为失败并修复。HTML 与由其生成的 PDF 都要做可视化验收，至少确认中文、上下标、希腊字母/单位符号、公式间距、换行和图片没有乱码、裸转义串、裁切或重叠。
+
 ## 复盘与信号
 
 周末/四周复盘在下一次启动检查真实学习日期、已完成复盘，不靠后台。除 KEEP/CHANGE/STOP/TEST 外，至少查看一项 delayed retention 缺口或已完成的 delayed/transfer 复测；选2–4项写入本次Session并指向计划/证据，必要时用 `retentionReview` 记录 reviewed/completed/pending evidenceId。能力/优先级仅提建议。
