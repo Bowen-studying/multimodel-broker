@@ -58,6 +58,8 @@ PPT/PPTX 路由必须按 MIME 与扩展名区分：`application/vnd.google-apps.
 
 HTML 学习页中的公式默认使用浏览器原生可渲染的 HTML/Unicode（如 `<sub>`、`<sup>`、`Ω`、`Δ`、CSS 间距），**不得把 LaTeX 控制命令直接写进普通 HTML 文本**（例如 `\\quad`、`\\frac`、`\\alpha`），除非页面显式内置并启用 MathJax/KaTeX 且已实际渲染验证。交付前必须做自动检查：扫描残留 `\\[A-Za-z]+` 形式的 TeX 控制词；发现即视为失败并修复。HTML 与由其生成的 PDF 都要做可视化验收，至少确认中文、上下标、希腊字母/单位符号、公式间距、换行和图片没有乱码、裸转义串、裁切或重叠。
 
+跨课程统一交付约定：当课程学习需要沉淀为图文学习页时，**电脑端优先生成 HTML 学习页，手机端同时生成同内容 PDF**。两者必须保持相同知识结构、同一组课程资料原图和同一版公式/文字内容；HTML 用于电脑交互式/连续阅读，PDF 用于手机稳定预览。默认将两份文件一起上传到 `/AI学习助手/<课程显示名>/`。除非用户明确要求，否则不得只交付 HTML 而不提供手机可读 PDF，也不得只交付 PDF 而丢失电脑端 HTML。
+
 ## 复盘与信号
 
 周末/四周复盘在下一次启动检查真实学习日期、已完成复盘，不靠后台。除 KEEP/CHANGE/STOP/TEST 外，至少查看一项 delayed retention 缺口或已完成的 delayed/transfer 复测；选2–4项写入本次Session并指向计划/证据，必要时用 `retentionReview` 记录 reviewed/completed/pending evidenceId。能力/优先级仅提建议。
