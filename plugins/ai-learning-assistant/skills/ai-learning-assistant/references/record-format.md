@@ -55,7 +55,7 @@
 - 中断或跨设备恢复时，可在 `continuation` 下增加 `recovery`：`{"anchor":"最近已确认的 evidenceId、记录或计划目标","minimalAction":"下一次先做的最小动作","doNotRepeat":["已有证据支持、无需重做的事项"]}`。它是接续提示，不是第二份状态；无中断时省略。
 - `kind=week_review` 时可增加 `retentionReview`：`{"reviewedEvidenceIds":["本次检查的旧 evidenceId"],"completedRetestEvidenceIds":["本事件新建的 delayed/transfer evidenceId"],"pendingRetestEvidenceIds":["仍待延迟复测的旧 evidenceId"],"nextStep":"下一项具体复测动作"}`。没有新作答时 `completedRetestEvidenceIds=[]`，不能把计划当成保持证据。
 - plan.items 最多30项，每项 `{"goal":"原计划目标","status":"practiced","evidenceIds":["本事件证据id"]}`，status 为 pending / explained / practiced / verified。它是**本事件增量**，不是整套计划快照。verified 需本事件中 H0 的 independent_verification 或 transfer 且 outcome=verified；只引用本事件的 evidenceId。无新进展时 items=[]。整体进度从原计划和全部相关记录重建，省略不表示退步，也不许重写先前事件。
-- sources 最多20项，location/status/note 均必填；status 为 read / index_only / unavailable。仅列出文件名不等于 read。部分读取在 note 写明，不冒称读完整本。
+- sources 最多20项，location/status/note 均必填；status 为 read / index_only / unavailable。仅列出文件名或取得未解析的原文件不等于 read，记 index_only 并注明内容未读；实际读取部分内容时可记 read，但须在 note 写明范围和未见图表，不冒称读完整本。partial_text 只可描述工具返回的读取限制，不能写成新的 status 枚举。
 - learningSignal / proposedStateUpdate 是可选文字，不是已执行的能力变更。ALLOW_STATE_UPDATE 必须 false。synthetic=true 只能用于开发明确指定的隔离测试分支，日常接续排除。
 
 ## 作答判定留证（沿用 v1 字段）
@@ -65,6 +65,25 @@
 `reconstruction` / `practice` 的 verified 仅表示该次活动内容达标，提示依赖必须保留，不能称为独立掌握。`independent_verification` / `transfer` 的 verified 还需 H0、有效新题及未泄露的关键解法。`plan.items.status=verified` 须有相应独立证据覆盖该 goal 的全部必要内容；只验证子目标时明确子目标，不能用部分证据验证整章。
 
 未完成项用 `continuation.unverified` 和 `nextStep` 接续；`evidenceLimits` 说明此次支持与未证明的范围。保持原始 question/studentAnswer，不把事后新增要求、教师补全或多轮被提示的片段改造成独立作答。旧记录缺少此种 feedback 结构仍可读取，不补猜、不批量重写；正式能力变更继续走原确认规则。
+
+## 材料覆盖与表达帮助（沿用 v1 字段）
+
+按 [指定资料的内容覆盖](context-and-plan.md#指定资料的内容覆盖) 留下可恢复的范围、定位和处理增量，不新增 coverage、role、expressionScore、掌握率或状态文件。听者视角与专业复核是同一作答的检查方式，不创建重复 evidence；实际作答或后续新重构才按真实活动留证。
+
+| 事实 | 既有字段与写法 |
+| --- | --- |
+| 本次指定材料与实际读取范围 | sources.location 存真实文件 URL/标识；sources.note 存版本、页/图/章节、已读取与待核查部分，不能用文件已取得替代内容已读 |
+| 内容映射与覆盖核对 | summary 按实际来源分组写“来源定位→实质知识/独有条件→原目标→实际讲解或学习页定位→本次处理/缺口”；首次记已核查范围，后续只记变化并引用旧 Session 路径及分组 |
+| 原课程目标的新增教学进展 | plan.items 沿用原目标和现有 status；只有实际发生的讲解才记 explained，已准备学习页不等于已讲解，已教不等于 verified |
+| 表达组织与专业内容的诊断 | 对应作答的 feedback 分清“表述未清楚/尚无法判断”与“已观察到知识错误”，注明教师实际给出的澄清、组织框架、关系提示或范例及最高 hintLevel |
+| 未教、未核查与学生待修复项 | continuation.unverified 用文字注明缺口类型、范围和详细清单的实际记录定位；nextStep 指向下一具体核查、补讲或作答任务，未教/未核查本身不构成学生答错证据 |
+| 当前证据边界 | evidenceLimits 说明知识内容、表达组织及独立性中实际证明和未证明的部分；学生只认可教师整理稿，不据此虚构新的独立表达 |
+
+组织框架是否构成关键帮助，依本次被评能力与实际供给判断，不能一律记 H0；若评的是自主组织论证，教师给出结构也可能帮助了目标能力。studentAnswer 始终保留原话，教师润色、重排或补出的解释只能作为反馈或教学事实。没有新测评作答的资料核查/备课记录使用 evidence=[]；plan.items 也只留本事件真实增量，不给每条资料清单虚构学生证据或新正式目标。对未教内容若已有实际作答，仍按真实回答评价，同时分开记录教师待补教学和已观察到的学生错误，不因未教而抹去真实作答。
+
+严格保持既有上限：sources 20项、plan.items 30项、continuation.unverified 20项、evidence 20项，长文字字段12000字符、短字段1000字符。资料多时按原章节/模块分组，组内保留每个不同实质内容的来源定位、独有条件及处理；分组只压缩导航，不合并抹去未完成项。同一资料可在一项 sources 中写本次读取范围，完整内容明细放入有定位的 summary；超出单字段或单记录上限时按自然章节分批保存**真实新增**的覆盖核查/教学事件，每批沿用正常 operationId 冻结、重试和回读规则。
+
+跨批次用实际 Session 路径和其中的章节/页范围分组定位连接明细；续接记录保留尚未处理的全部范围以及各组详细清单位置，较多缺口可按原模块分组后引用明细。不能只写“其余以后再说”、截去第21项以后的内容，或用“已覆盖某章”替代该章未完成清单。已有明细与学生证据只引用，不复制成新事件；未核验保存的批次明确待恢复，不能宣称覆盖记录完整可恢复。恢复时沿这些定位读取各批增量，未出现在新记录中不表示已完成、删除或退步。
 
 ## 概念与三轴记录（沿用 v1）
 

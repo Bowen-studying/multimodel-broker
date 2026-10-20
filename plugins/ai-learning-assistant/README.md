@@ -17,4 +17,4 @@ node scripts/export-github-entry.mjs --destination-root <ai-learning-system chec
 - `00_学习系统/AI_LEARNING_ASSISTANT/tool-contract.md`
 - `00_学习系统/AI_LEARNING_ASSISTANT/export-manifest.json`
 
-五份运行文档的维护源在这里；`COURSE_REGISTRY.md`、课程 Plan、Sessions 和正式能力状态仍由 `ai-learning-system` 维护，不从 Broker 导出。学习程度按 assessment.md 逐项核对任务标准、原始作答与提示条件；Markdown 执行与导出测试不等于程序化掌握判定。
+五份运行文档的维护源在这里；`COURSE_REGISTRY.md`、课程 Plan、Sessions 和正式能力状态仍由 `ai-learning-system` 维护，不从 Broker 导出。context-and-plan.md 核对指定资料的实质内容与实际讲解覆盖；assessment.md 按听者可理解性和专业准确完整性诊断作答、引导表达，并逐项核对任务标准、原话与提示条件。Markdown 执行与导出测试不等于程序化掌握判定。
