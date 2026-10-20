@@ -58,6 +58,14 @@
 - sources 最多20项，location/status/note 均必填；status 为 read / index_only / unavailable。仅列出文件名不等于 read。部分读取在 note 写明，不冒称读完整本。
 - learningSignal / proposedStateUpdate 是可选文字，不是已执行的能力变更。ALLOW_STATE_UPDATE 必须 false。synthetic=true 只能用于开发明确指定的隔离测试分支，日常接续排除。
 
+## 作答判定留证（沿用 v1 字段）
+
+每次评价先执行同版本 [学习程度判定规范](assessment.md)。重要作答的 `feedback` 写清目标与判据来源，并逐项保存“必要要求 → 学生原话/作品定位 → 满足、部分、矛盾或未观察到”，最后写关键缺口、内容结论、实际提示条件和下一步。全部必要内容满足且无关键错误才能使用 `outcome=verified`，不能只写“差不多/基本正确”。不添加新的 JSON 字段或总分。
+
+`reconstruction` / `practice` 的 verified 仅表示该次活动内容达标，提示依赖必须保留，不能称为独立掌握。`independent_verification` / `transfer` 的 verified 还需 H0、有效新题及未泄露的关键解法。`plan.items.status=verified` 须有相应独立证据覆盖该 goal 的全部必要内容；只验证子目标时明确子目标，不能用部分证据验证整章。
+
+未完成项用 `continuation.unverified` 和 `nextStep` 接续；`evidenceLimits` 说明此次支持与未证明的范围。保持原始 question/studentAnswer，不把事后新增要求、教师补全或多轮被提示的片段改造成独立作答。旧记录缺少此种 feedback 结构仍可读取，不补猜、不批量重写；正式能力变更继续走原确认规则。
+
 ## 概念与三轴记录（沿用 v1）
 
 概念关联用现有文本字段表达，不增加 conceptId、masteryScore 或轴状态等 JSON 字段。上述可选字段只补充证据阶段、边界和恢复关系，不是新的能力等级或掌握率。summary 在必要时写“概念关联：本事件 evidenceId → 现有课程地图概念标识/计划章节目标”；没有现成标识就引用实际章节名称，不创建新课程图。question 和 studentAnswer 保留真实原话，不能为了加标签改写；sourceTurn 保留可定位的原对话轮次。若 plan.items 有本次相关目标，用 goal 和本事件 evidenceIds 连起计划与作答。
@@ -66,4 +74,4 @@ summary 同时简要区分本次发生的“课堂进度；自主学习事实及
 
 例：学生在一轮里回答后说“先到这里”，先如实判断这次作答，把原话作为一个 evidence，连同 nextStep 存入 pause。若刚才检查点已保存同一作答，pause 的 evidence=[]、items=[]，只记新接续。不要为了满足格式复制旧答案或伪造独立验证。
 
-内容限制：单个长文字字段最多12000字符，短字段最多1000字符；`evidence` 最多20项，`evidenceLimits.supports` 和 `doesNotProve` 各最多5项，`retentionReview` 的每个 evidenceId 列表最多20项，`continuation.recovery.doNotRepeat` 最多10项；不得存凭据。普通 Chat 必须执行这些约定；代码 `src/learning/chat-record.ts` 是 broker 的可测试校验/参考实现，读取本 Markdown 不会在 Chat 中自动运行此代码。
+内容限制：单个长文字字段最多12000字符，短字段最多1000字符；`evidence` 最多20项，`evidenceLimits.supports` 和 `doesNotProve` 各最多5项，`retentionReview` 的每个 evidenceId 列表最多20项，`continuation.recovery.doNotRepeat` 最多10项；不得存凭据。普通 Chat 按本 Markdown 检查格式与内容；文档被读取、格式符合约定或导出检查通过，均不等于已经运行独立评分器或程序化验证了学生掌握程度。

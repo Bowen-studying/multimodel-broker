@@ -2,7 +2,7 @@
 
 正式能力只从原 Current_Learning_State 及明确生效审批读取。Sessions保存学习证据与接续，不另建 current-state.json。最新写入不等于最新发生：historical_backfill 保留发生时间/来源，只补背景；更新的真实课次优先。纠错明确引用原证据，保留历史。
 
-复用本轮入口已固定的目标分支与 target commit，不在本引用中重新取 head。若需要刷新，入口和四份运行文档（TEACHING.md、context-and-plan.md、record-format.md、tool-contract.md）以及相关协议、计划、状态、证据都须在新固定的同一 commit 完整重读，再切换依据。
+复用本轮入口已固定的目标分支与 target commit，不在本引用中重新取 head。若需要刷新，入口和五份运行文档（TEACHING.md、assessment.md、context-and-plan.md、record-format.md、tool-contract.md）以及相关协议、计划、状态、证据都须在新固定的同一 commit 完整重读，再切换依据。
 
 旧 CURRENT_STATE 的“先问上次做到哪题”若已有 Session 回答，就主动接续；旧“暂无证据”不抹掉后来作答，后来作答也不自动晋级。按课程和日期读近期记录，再沿来源补足；若最近记录有 `continuation.recovery`，以其 anchor 定位、先做 minimalAction，并跳过 `doNotRepeat` 中已有证据支持的工作。旧 Markdown 缺 id/精确提示/日期时保留文件、章节、原话引用，不伪造。最近30条仍不清楚时继续查相关来源；只有真实矛盾无法解时问一个必要问题。
 
@@ -21,6 +21,8 @@
 | 已独立验证 | 对应概念的真实新题/变式、原话、提示程度与结果；沿用原协议和现有记录对独立验证的条件，未有证据就保留未验证。 |
 
 同一概念可以同时是“课堂已讲解、自述课后读过、独立验证未完成”。三轴在本事件 summary 中写必要事实，plan.items 仍只写本次目标进展；原五级正式能力不由三轴自动换算，不添加概率掌握率。复述、教师示范、动画完成或复习次数均不能代替独立证据。
+
+恢复作答结论时按同版本 [学习程度判定规范](assessment.md) 查看目标范围、必要项与真实原话，保留实际提示和未完成项。继续下一章节只说明教学接续，不表示上一目标已验证；单个子目标通过不能覆盖整章。旧记录没有逐项判据时保持证据边界，需要时安排新的真实验证，不改写历史。
 
 ## Evidence & retention v1
 

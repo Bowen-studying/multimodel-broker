@@ -36,6 +36,11 @@ export const FILE_MAPPINGS = Object.freeze([
     destination: "00_学习系统/AI_LEARNING_ASSISTANT/tool-contract.md",
     stripFrontmatter: false,
   },
+  {
+    source: "plugins/ai-learning-assistant/skills/ai-learning-assistant/references/assessment.md",
+    destination: "00_学习系统/AI_LEARNING_ASSISTANT/assessment.md",
+    stripFrontmatter: false,
+  },
 ]);
 
 const GENERATED_HEADER = (source) =>
@@ -54,6 +59,21 @@ function stripFrontmatter(text, source) {
   const match = text.match(/^---\n[\s\S]*?\n---\n\n/);
   if (!match) throw new Error("SKILL.md is missing the expected YAML frontmatter: " + source);
   return text.slice(match[0].length);
+}
+
+function relocateSkillReferences(text, mapping) {
+  if (!mapping.source.endsWith("/SKILL.md")) return text;
+  const links = new Map(FILE_MAPPINGS.map((reference) => [
+    path.posix.relative(path.posix.dirname(mapping.source), reference.source),
+    path.posix.relative(path.posix.dirname(mapping.destination), reference.destination),
+  ]));
+  return text.replace(
+    /(\]\()((?:\.\/)?references\/[^)\s#]+)(#[^)\s]*)?(?=[)\s])/g,
+    (match, opening, target, fragment = "") => {
+      const relocated = links.get(target.replace(/^\.\//, ""));
+      return relocated ? opening + relocated + fragment : match;
+    },
+  );
 }
 
 function sha256(text) {
@@ -94,7 +114,10 @@ export async function buildExport({ sourceRoot, destinationRoot }) {
     const sourcePath = resolveInside(sourceRoot, mapping.source);
     const raw = normalize(await readFile(sourcePath, "utf8"));
     const sourceText = ensureFinalNewline(raw);
-    const body = mapping.stripFrontmatter ? stripFrontmatter(sourceText, mapping.source) : sourceText;
+    const body = relocateSkillReferences(
+      mapping.stripFrontmatter ? stripFrontmatter(sourceText, mapping.source) : sourceText,
+      mapping,
+    );
     const generated = ensureFinalNewline(GENERATED_HEADER(mapping.source) + body);
     outputs.push({
       ...mapping,
