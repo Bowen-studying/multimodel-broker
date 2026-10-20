@@ -22,7 +22,7 @@ operationId 首次准备时固定，使用安全 sessionId + 检查点序号；�
 ## 保存与核验
 
 1. 固定 id、路径并准备内容；查同一路径。已有且完整内容完全相同则回读核验并复用，不创建；已有不同内容返回 IDEMPOTENCY_CONFLICT，不覆盖。
-2. 新写前再次读分支 head，与 contextCommit 比较。若发生变化且从未尝试创建，固定新 commit，在该同一版本完整重读 START_HERE.md、四份运行文档（TEACHING.md、context-and-plan.md、record-format.md、tool-contract.md）和相关学习上下文（包括新增记录及协议/计划），再协调接续，在同 id 草稿更新 contextCommit 并重新定稿。普通的下一次检查点也检查 head；未变化就复用本轮已读版本，不单独替换某份指令或计划。一旦尝试创建（包括超时），冻结原字节，先恢复核验原操作，不修改内容、不用新 id 绕过冲突。
+2. 新写前再次读分支 head，与 contextCommit 比较。若发生变化且从未尝试创建，固定新 commit，在该同一版本完整重读 START_HERE.md、六份运行文档（TEACHING.md、question-design.md、assessment.md、context-and-plan.md、record-format.md、tool-contract.md）和相关学习上下文（包括新增记录及协议/计划），再协调接续，在同 id 草稿更新 contextCommit 并重新定稿。普通的下一次检查点也检查 head；未变化就复用本轮已读版本，不单独替换某份指令或计划。一旦尝试创建（包括超时），冻结原字节，先恢复核验原操作，不修改内容、不用新 id 绕过冲突。
 3. 用 create_file 指定 repository_full_name、branch、固定path、完整content和简短提交说明；不把学生原话或晋级判断放进提交消息。
 4. 用返回 commit SHA 作为 ref 回读该文件，核对完整内容与实际 blob SHA，再回读当前分支该文件，确保仍同一内容。通过 GitHub fetch 的 commits/<sha> 端点读取 parents（宿主 fetch_commit 若省略 parents，不能臆造）；核实唯一父版本是 contextCommit 且目标路径在父版本不存在。再查 commits?path=<编码路径>&sha=<固定当前head>&per_page=1，最新触及该文件的提交须仍是原创建提交，防止改后还原。核验前后head须一致；移动则补核验。若创建期间发生竞态，报告“已落地但基于旧上下文，待协调”。通过才标 github_verified。回执保留 path/原创建commit/blob/当前head 和不可变 GitHub链接，不自己生成 SHA。
 5. create 超时或结果不明：查询同一路径。完整匹配则从该文件提交历史取得真实写入 commit，再核验；不存在则保留待重试且 id 不变；内容不同报冲突。连接失败不是未写入，不能盲目重发。

@@ -41,6 +41,11 @@ export const FILE_MAPPINGS = Object.freeze([
     destination: "00_学习系统/AI_LEARNING_ASSISTANT/assessment.md",
     stripFrontmatter: false,
   },
+  {
+    source: "plugins/ai-learning-assistant/skills/ai-learning-assistant/references/question-design.md",
+    destination: "00_学习系统/AI_LEARNING_ASSISTANT/question-design.md",
+    stripFrontmatter: false,
+  },
 ]);
 
 const GENERATED_HEADER = (source) =>

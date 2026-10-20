@@ -5,7 +5,7 @@ import path from "node:path";
 import { test } from "node:test";
 import { FILE_MAPPINGS, exportEntry } from "./export-github-entry.mjs";
 
-test("export is deterministic and check mode detects drift", async () => {
+test("export is deterministic and check mode detects missing files and drift", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "ai-learning-export-"));
   const sourceRoot = path.join(root, "source");
   const destinationRoot = path.join(root, "destination");
@@ -21,20 +21,34 @@ test("export is deterministic and check mode detects drift", async () => {
     const written = await exportEntry({ sourceRoot, destinationRoot });
     assert.equal(written.status, "exported");
     const assessmentPath = "00_学习系统/AI_LEARNING_ASSISTANT/assessment.md";
-    assert.ok(written.files.includes(assessmentPath));
-    assert.ok((await readFile(path.join(destinationRoot, assessmentPath), "utf8")).endsWith("# Test reference\n"));
+    const questionDesignPath = "00_学习系统/AI_LEARNING_ASSISTANT/question-design.md";
+    for (const referencePath of [assessmentPath, questionDesignPath]) {
+      assert.ok(written.files.includes(referencePath));
+      assert.ok((await readFile(path.join(destinationRoot, referencePath), "utf8")).endsWith("# Test reference\n"));
+    }
     const checked = await exportEntry({ sourceRoot, destinationRoot, check: true });
     assert.equal(checked.status, "consistent");
     const manifestPath = path.join(destinationRoot, "00_学习系统/AI_LEARNING_ASSISTANT/export-manifest.json");
     const manifestBefore = await readFile(manifestPath, "utf8");
-    for (const driftPath of ["00_学习系统/AI_LEARNING_ASSISTANT/TEACHING.md", assessmentPath]) {
+    const manifest = JSON.parse(manifestBefore);
+    assert.equal(manifest.files.length, 6);
+    const questionDesignEntries = manifest.files.filter((item) => item.path === questionDesignPath);
+    assert.equal(questionDesignEntries.length, 1);
+    assert.equal(questionDesignEntries[0].source, "plugins/ai-learning-assistant/skills/ai-learning-assistant/references/question-design.md");
+    for (const driftPath of ["00_学习系统/AI_LEARNING_ASSISTANT/TEACHING.md", assessmentPath, questionDesignPath]) {
       await writeFile(path.join(destinationRoot, driftPath), "drift\n", "utf8");
       await assert.rejects(
         exportEntry({ sourceRoot, destinationRoot, check: true }),
-        (error) => error?.mismatches?.some((item) => item.path === driftPath),
+        (error) => error?.mismatches?.some((item) => item.path === driftPath && item.reason === "content"),
       );
       await exportEntry({ sourceRoot, destinationRoot });
     }
+    await rm(path.join(destinationRoot, questionDesignPath));
+    await assert.rejects(
+      exportEntry({ sourceRoot, destinationRoot, check: true }),
+      (error) => error?.mismatches?.some((item) => item.path === questionDesignPath && item.reason === "missing"),
+    );
+    await exportEntry({ sourceRoot, destinationRoot });
     const manifestAfter = await readFile(manifestPath, "utf8");
     assert.equal(manifestAfter, manifestBefore);
   } finally {
@@ -48,6 +62,11 @@ test("SKILL reference links relocate known files and preserve fragments and othe
   const destinationRoot = path.join(root, "destination");
   const body = [
     "# Teaching",
+    "[出题](references/question-design.md)",
+    "[自动调度](references/question-design.md#按阶段与题目用途自动调度)",
+    "[任务设计](./references/question-design.md#出题前的任务设计)",
+    "[验题](references/question-design.md#发题前验题 \"发题前验题\")",
+    "[巩固](references/question-design.md#巩固与复习)",
     "[评判](references/assessment.md#逐项判定)",
     "[记录](./references/record-format.md \"记录格式\")",
     "[上下文](references/context-and-plan.md)",
@@ -60,6 +79,11 @@ test("SKILL reference links relocate known files and preserve fragments and othe
   ].join("\n");
   const expectedBody = [
     "# Teaching",
+    "[出题](question-design.md)",
+    "[自动调度](question-design.md#按阶段与题目用途自动调度)",
+    "[任务设计](question-design.md#出题前的任务设计)",
+    "[验题](question-design.md#发题前验题 \"发题前验题\")",
+    "[巩固](question-design.md#巩固与复习)",
     "[评判](assessment.md#逐项判定)",
     "[记录](record-format.md \"记录格式\")",
     "[上下文](context-and-plan.md)",

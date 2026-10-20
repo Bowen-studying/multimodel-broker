@@ -12,7 +12,7 @@
 
 正式能力只从原 Current_Learning_State 及明确生效审批读取。Sessions保存学习证据与接续，不另建 current-state.json。最新写入不等于最新发生：historical_backfill 保留发生时间/来源，只补背景；更新的真实课次优先。纠错明确引用原证据，保留历史。
 
-复用本轮入口已固定的目标分支与 target commit，不在本引用中重新取 head。若需要刷新，入口和五份运行文档（TEACHING.md、assessment.md、context-and-plan.md、record-format.md、tool-contract.md）以及相关协议、计划、状态、证据都须在新固定的同一 commit 完整重读，再切换依据。
+复用本轮入口已固定的目标分支与 target commit，不在本引用中重新取 head。若需要刷新，入口和六份运行文档（TEACHING.md、question-design.md、assessment.md、context-and-plan.md、record-format.md、tool-contract.md）以及相关协议、计划、状态、证据都须在新固定的同一 commit 完整重读，再切换依据。
 
 旧 CURRENT_STATE 的“先问上次做到哪题”若已有 Session 回答，就主动接续；旧“暂无证据”不抹掉后来作答，后来作答也不自动晋级。按课程和日期读近期记录，再沿来源补足；若最近记录有 `continuation.recovery`，以其 anchor 定位、先做 minimalAction，并跳过 `doNotRepeat` 中已有证据支持的工作。旧 Markdown 缺 id/精确提示/日期时保留文件、章节、原话引用，不伪造。最近30条仍不清楚时继续查相关来源；只有真实矛盾无法解时问一个必要问题。
 
@@ -21,6 +21,8 @@
 规划路径、讲解、练习、历史回填和复盘共用同一 commit 下的协议、课程地图、计划、正式状态及相关 Sessions。计划或地图已有概念标识就沿用；没有时用其可定位章节/目标名称，不自建另一套概念库。选课与选概念时说明它对应哪个已有目标，不能让最近聊天话题替代完整计划。
 
 启动先处理用户本次明确要求；否则优先最近未完成验证、已有 delayed/transfer 缺口和既有计划/记录中已经到期的复习，再考虑新概念。两者都到期时按先修阻塞与既有优先级安排短复核，其余保留 nextStep。只把已有日期明确的安排称为“到期”；没有复习日期就不编造 FSRS/SM-2 排期或宣称逾期。新概念所需基础缺失时先补讲并检验该缺口；历史摘要不足以证明先修已满足，也不要求与新概念无关的所有旧内容先全部掌握。
+
+教师根据本节原目标、实际已教范围、近期真实证据和既有待复习项，按 [阶段与题目用途](question-design.md#按阶段与题目用途自动调度) 自动选择问题和检查视角；学生正常作答，无需手动切换。巩固与复测按 [巩固与复习](question-design.md#巩固与复习) 取样，保留本节教材覆盖责任及未完成目标，不让题目选择缩减指定资料范围。
 
 三条轴是从既有计划与证据重建的事实视图，不是新能力量表：
 
